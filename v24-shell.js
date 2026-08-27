@@ -202,28 +202,129 @@
     setupTop();compactBanner();tunePhases();tuneBuilder();tuneLibrary();tuneHeader();
   }
 
-  function install(){
-    if(installed)return;
-    if(typeof window.render!=='function'||typeof window.LESSONS==='undefined'||!$('#builder'))return;
-    installed=true;
-    const baseRender=window.render;
-    window.render=function(){baseRender();requestAnimationFrame(tune)};
-    tune();
-    // Golden content stays untouched; autosave only records current user changes.
-    setInterval(()=>{try{if(!homeShown)saveLocal(true)}catch(_){}},30000);
-    setTimeout(()=>showHome(),80);
+  let bootError='';
+  let autosaveStarted=false;
+
+  function appIsVisible(){
+    const shell=$('#app-shell');
+    return !!shell && !shell.hidden;
   }
 
-  // v24.0.1
-  // ВАЖНО: не наблюдаем весь DOM через MutationObserver.
-  // tuneBuilder() сам добавляет служебную разметку, поэтому общий observer
-  // создавал цикл: mutation -> tune -> mutation -> tune -> ...
-  //
-  // Единственный источник обновления оболочки — штатный GOLDEN render().
-  // На первом запуске install() ждёт, пока app.js загрузится через gate.js,
-  // оборачивает render() и выполняет tune() один раз.
+  function goldenReady(){
+    return (
+      typeof window.render==='function' &&
+      Array.isArray(window.LESSONS) &&
+      window.LESSONS.length>0 &&
+      typeof window.reset==='function' &&
+      !!$('#builder')
+    );
+  }
+
+  function install(){
+    if(installed || !goldenReady())return false;
+
+    installed=true;
+    const baseRender=window.render;
+
+    window.render=function(){
+      baseRender();
+      requestAnimationFrame(()=> {
+        try{ tune(); }
+        catch(e){
+          bootError=`v24 tune: ${e?.message||e}`;
+          console.error('[CLEAN v24]',e);
+        }
+      });
+    };
+
+    try{ tune(); }
+    catch(e){
+      bootError=`v24 tune: ${e?.message||e}`;
+      console.error('[CLEAN v24]',e);
+    }
+
+    if(!autosaveStarted){
+      autosaveStarted=true;
+      setInterval(()=>{try{if(!homeShown)saveLocal(true)}catch(_){}},30000);
+    }
+    return true;
+  }
+
+  function showHomeSafely(){
+    if(!appIsVisible())return;
+
+    // Главная v24 — самостоятельный слой и НЕ должна ждать Golden engine.
+    if(!$('#v24-home')){
+      try{ showHome(); }
+      catch(e){
+        bootError=`v24 home: ${e?.message||e}`;
+        console.error('[CLEAN v24]',e);
+      }
+    }
+  }
+
+  // Если какой-либо динамически загружаемый GOLDEN-скрипт упадёт,
+  // сохраняем точную ошибку. Пользователю DevTools для диагностики не нужен.
+  window.addEventListener('error',e=>{
+    if(!appIsVisible())return;
+    const file=(e.filename||'').split('/').pop();
+    bootError=[file,e.lineno?`строка ${e.lineno}`:'',e.message||'Ошибка JavaScript']
+      .filter(Boolean).join(' · ');
+  });
+
+  window.addEventListener('unhandledrejection',e=>{
+    if(!appIsVisible())return;
+    bootError=`Promise: ${e.reason?.message||e.reason||'неизвестная ошибка'}`;
+  });
+
+  // Новый принцип:
+  // 1) как только gate открыл app-shell — сразу показываем Главную;
+  // 2) параллельно ждём GOLDEN engine;
+  // 3) после его появления подключаем только UI-настройку.
   const timer=setInterval(()=>{
+    showHomeSafely();
     install();
-    if(installed)clearInterval(timer);
+
+    // Останавливаем частый опрос, когда оба слоя готовы.
+    if(installed && $('#v24-home'))clearInterval(timer);
   },80);
+
+  // Защитный таймер: если движок не появился, Главная всё равно остаётся рабочей.
+  setTimeout(()=>{
+    showHomeSafely();
+    if(!installed && appIsVisible()){
+      console.warn('[CLEAN v24] GOLDEN engine пока не подключён',bootError);
+    }
+  },3000);
+
+  // Подменяем действия Главной безопасными проверками.
+  const actionGuard=setInterval(()=>{
+    const h=$('#v24-home');
+    if(!h)return;
+
+    const newBtn=h.querySelector('[data-v24-new]');
+    if(newBtn && !newBtn.dataset.guard){
+      newBtn.dataset.guard='1';
+      newBtn.onclick=()=>{
+        if(!goldenReady()){
+          modal(
+            'Рабочая часть ещё загружается',
+            `<p>Главная уже открыта, но GOLD STANDARD ещё не готов к работе.</p>
+             ${bootError?`<p><b>Диагностика:</b> ${esc(bootError)}</p>`:''}
+             <p>Нажмите «Попробовать ещё раз» через несколько секунд.</p>`,
+            `<button id="v24-retry-engine">Попробовать ещё раз</button>`
+          );
+          setTimeout(()=>{
+            const b=$('#v24-retry-engine');
+            if(b)b.onclick=()=>location.reload();
+          },0);
+          return;
+        }
+        reset();
+        hideHome();
+      };
+    }
+
+    if(installed)clearInterval(actionGuard);
+  },120);
 })();
