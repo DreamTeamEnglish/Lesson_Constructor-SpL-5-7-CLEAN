@@ -247,3 +247,96 @@ body.gate-pending #app-shell{visibility:hidden}
   .clean-admin-help-actions{grid-template-columns:1fr}
 }
 
+/* CLEAN v23.3.4 · compact recovery screen */
+.clean-gate-card:has(#clean-recover-submit){
+  max-width:760px;
+  padding-top:24px;
+  padding-bottom:24px;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-gate-brand{
+  margin-bottom:12px;
+}
+.clean-gate-card:has(#clean-recover-submit) h1{
+  margin:4px 0 8px;
+  font-size:clamp(36px,4.2vw,54px);
+}
+.clean-gate-card:has(#clean-recover-submit) > p{
+  margin:0 0 14px;
+  line-height:1.4;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-login{
+  gap:10px;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-login label{
+  gap:4px;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-login input{
+  padding-top:10px;
+  padding-bottom:10px;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-btn{
+  min-height:48px;
+  padding-top:10px;
+  padding-bottom:10px;
+}
+.clean-admin-help.compact{
+  margin-top:2px;
+  padding:10px 12px;
+  border:1px solid #d8c37d;
+  border-radius:11px;
+  background:#fffaf0;
+}
+.clean-admin-help.compact b{
+  display:inline;
+  margin:0;
+  color:#0a2856;
+  font:800 13px/1.35 system-ui,sans-serif;
+}
+.clean-admin-help.compact span{
+  color:#657185;
+  font:12px/1.35 system-ui,sans-serif;
+  margin-left:5px;
+}
+.clean-admin-help.compact .clean-admin-help-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:8px;
+}
+.clean-mini-btn{
+  border:1px solid #b9c5d6;
+  background:#fff;
+  color:#17345e;
+  border-radius:9px;
+  min-height:38px;
+  padding:7px 10px;
+  font:800 12px/1.2 system-ui,sans-serif;
+  cursor:pointer;
+}
+.clean-mini-btn.gold{
+  border-color:#d1a32d;
+  background:#d3a029;
+  color:#10264e;
+}
+@media(max-height:760px){
+  .clean-gate{padding-top:10px;padding-bottom:10px}
+  .clean-gate-card:has(#clean-recover-submit){
+    padding-top:18px;
+    padding-bottom:18px;
+  }
+  .clean-gate-card:has(#clean-recover-submit) .clean-gate-brand img{
+    width:54px;height:54px;
+  }
+  .clean-gate-card:has(#clean-recover-submit) .clean-gate-brand b{
+    font-size:22px;
+  }
+  .clean-gate-card:has(#clean-recover-submit) h1{
+    font-size:40px;
+  }
+}
+@media(max-width:650px){
+  .clean-admin-help.compact .clean-admin-help-actions{
+    grid-template-columns:1fr;
+  }
+}
+

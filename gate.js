@@ -413,7 +413,6 @@
             <img src="assets/brand-logo.png" alt="">
             <div><b>Копилочка Английского</b><span>Восстановление доступа · CLEAN v23</span></div>
           </div>
-          <span class="clean-kicker">ВОССТАНОВЛЕНИЕ ДОСТУПА</span>
           <h1>Забыли пароль?</h1>
           <p>Введите email или VK ID, сохранённый код восстановления и сразу придумайте новый пароль.</p>
           <div class="clean-login">
@@ -424,13 +423,12 @@
             <div id="clean-recover-error" class="clean-error" hidden></div>
             <button class="clean-btn gold" id="clean-recover-submit">Сменить пароль и войти</button>
             <button class="clean-btn" id="clean-recover-back">← Назад ко входу</button>
-            <section class="clean-admin-help">
+            <section class="clean-admin-help compact">
               <b>Нет кода восстановления?</b>
-              <p>Скопируйте готовое сообщение и отправьте его администратору — так будет сразу понятно, какой доступ нужно восстановить.</p>
-              <textarea id="clean-admin-help-message" readonly></textarea>
+              <span>Мы подготовим сообщение администратору с вашим email или VK ID.</span>
               <div class="clean-admin-help-actions">
-                <button class="clean-btn" id="clean-copy-admin-message" type="button">Скопировать сообщение</button>
-                <button class="clean-btn gold" id="clean-open-admin-chat" type="button">✉ Написать администратору</button>
+                <button class="clean-mini-btn" id="clean-copy-admin-message" type="button">Скопировать сообщение</button>
+                <button class="clean-mini-btn gold" id="clean-open-admin-chat" type="button">✉ Написать администратору</button>
               </div>
             </section>
           </div>
@@ -451,14 +449,8 @@
       ].join("\n");
     }
 
-    function refreshAdminHelpMessage(){
-      $("#clean-admin-help-message").value=buildAdminHelpMessage();
-    }
-
     $("#clean-recover-back").onclick=()=>showLogin();
     $("#clean-recover-submit").onclick=doRecovery;
-    recoveryIdentifier.addEventListener("input",refreshAdminHelpMessage);
-    refreshAdminHelpMessage();
 
     $("#clean-copy-admin-message").onclick=async()=>{
       const text=buildAdminHelpMessage();
@@ -467,8 +459,7 @@
         $("#clean-copy-admin-message").textContent="Скопировано ✓";
         setTimeout(()=>$("#clean-copy-admin-message").textContent="Скопировать сообщение",1500);
       }catch(_){
-        $("#clean-admin-help-message").focus();
-        $("#clean-admin-help-message").select();
+        alert(text);
       }
     };
 
