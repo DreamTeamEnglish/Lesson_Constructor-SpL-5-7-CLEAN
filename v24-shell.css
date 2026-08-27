@@ -557,3 +557,90 @@ body.v24-builder-mode .v24-lib-tabs{
   }
 }
 
+
+
+/* CLEAN v24.0.5 · readable left FGOS navigation */
+body.v24-builder-mode #app-shell > main{
+  grid-template-columns:
+    225px
+    minmax(480px,1fr)
+    minmax(275px,315px) !important;
+}
+
+body.v24-builder-mode #phases{
+  padding:10px 9px !important;
+}
+
+body.v24-builder-mode #phases h3{
+  font-size:15px !important;
+  line-height:1.12 !important;
+  margin:0 5px 8px !important;
+}
+
+body.v24-builder-mode #phases .phase{
+  gap:7px !important;
+  padding:6px 7px !important;
+  margin-bottom:1px !important;
+}
+
+body.v24-builder-mode #phases .phase i{
+  min-width:22px;
+  font-size:12px !important;
+  line-height:1.2 !important;
+}
+
+body.v24-builder-mode #phases .phase b{
+  font-size:12px !important;
+  line-height:1.16 !important;
+}
+
+body.v24-builder-mode #phases .phase small{
+  font-size:9.5px !important;
+  line-height:1.12 !important;
+  margin-top:3px !important;
+}
+
+body.v24-builder-mode #phases .total{
+  padding:7px 5px !important;
+  margin-top:5px !important;
+  font-size:10.5px !important;
+}
+
+body.v24-builder-mode #phases .ready{
+  padding:5px 6px !important;
+  font-size:9px !important;
+  line-height:1.2 !important;
+}
+
+/* Short laptops: keep all six stages visible without making text microscopic. */
+@media(max-height:760px) and (min-width:751px){
+  body.v24-builder-mode #phases{
+    padding:6px 7px !important;
+  }
+  body.v24-builder-mode #phases h3{
+    font-size:14px !important;
+    margin-bottom:5px !important;
+  }
+  body.v24-builder-mode #phases .phase{
+    padding:4px 6px !important;
+  }
+  body.v24-builder-mode #phases .phase b{
+    font-size:11px !important;
+  }
+  body.v24-builder-mode #phases .phase small{
+    font-size:8.8px !important;
+    margin-top:2px !important;
+  }
+  body.v24-builder-mode #phases .total{
+    padding:4px 5px !important;
+    margin-top:3px !important;
+  }
+}
+
+/* Preserve the same proportion on medium-width desktop screens. */
+@media(max-width:1180px) and (min-width:751px){
+  body.v24-builder-mode #app-shell > main{
+    grid-template-columns:210px minmax(420px,1fr) 270px !important;
+  }
+}
+
