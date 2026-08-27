@@ -106,10 +106,21 @@
       };
       h.querySelector('[data-v24-open]').onclick=()=>fileInput.click();
     }
-    h.hidden=false;homeShown=true;window.scrollTo(0,0);
+    h.hidden=false;
+    homeShown=true;
+    document.body.classList.add('v24-home-mode');
+    document.documentElement.classList.add('v24-home-lock');
+    window.scrollTo(0,0);
   }
 
-  function hideHome(){const h=$('#v24-home');if(h)h.hidden=true;homeShown=false;window.scrollTo(0,0)}
+  function hideHome(){
+    const h=$('#v24-home');
+    if(h)h.hidden=true;
+    homeShown=false;
+    document.body.classList.remove('v24-home-mode');
+    document.documentElement.classList.remove('v24-home-lock');
+    window.scrollTo(0,0);
+  }
 
   function setupTop(){
     const setup=$('#setup');if(!setup)return;

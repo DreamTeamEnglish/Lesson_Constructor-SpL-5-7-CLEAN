@@ -112,3 +112,92 @@
   min-height:0 !important;
   overflow:auto !important;
 }
+
+
+
+/* CLEAN v24.0.3 · fixed header + true separate Home screen */
+
+/* The application header is always pinned. */
+#app-shell > header{
+  position:fixed !important;
+  top:0;
+  left:0;
+  right:0;
+  z-index:1000;
+  box-sizing:border-box;
+}
+
+/* Reserve the header height for normal builder mode. */
+#app-shell{
+  padding-top:78px;
+  box-sizing:border-box;
+}
+
+/* HOME is a real screen, not an overlay above the builder. */
+body.v24-home-mode #clean-accessbar,
+body.v24-home-mode #setup,
+body.v24-home-mode #banner,
+body.v24-home-mode #app-shell > main{
+  display:none !important;
+}
+
+/* Prevent the document underneath from scrolling while Home is open. */
+html.v24-home-lock,
+html.v24-home-lock body{
+  overflow:hidden !important;
+  height:100% !important;
+}
+
+/* Home starts immediately under the pinned header. */
+body.v24-home-mode .v24-home{
+  position:fixed !important;
+  top:78px !important;
+  left:0 !important;
+  right:0 !important;
+  bottom:0 !important;
+  inset:auto 0 0 0 !important;
+  z-index:900 !important;
+  box-sizing:border-box;
+  min-height:0 !important;
+  overflow:hidden !important;
+  padding:42px 28px 34px !important;
+}
+
+/* Slightly tighter home composition so desktop needs no scrolling. */
+body.v24-home-mode .v24-home-inner{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+body.v24-home-mode .v24-home h1{
+  margin-top:5px;
+  margin-bottom:8px;
+}
+body.v24-home-mode .v24-home-lead{
+  margin-bottom:24px;
+}
+body.v24-home-mode .v24-home-grid article{
+  padding:20px 24px;
+}
+body.v24-home-mode .v24-home-grid h2{
+  margin:13px 0 7px;
+}
+body.v24-home-mode .v24-home-grid p{
+  min-height:58px;
+  margin-top:0;
+  margin-bottom:15px;
+}
+
+/* On short/mobile screens scrolling is allowed only INSIDE Home. */
+@media(max-height:760px), (max-width:760px){
+  body.v24-home-mode .v24-home{
+    overflow:auto !important;
+    padding-top:24px !important;
+  }
+  body.v24-home-mode .v24-home-inner{
+    height:auto;
+    justify-content:flex-start;
+  }
+}
+
