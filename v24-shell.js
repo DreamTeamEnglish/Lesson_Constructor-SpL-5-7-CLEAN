@@ -214,6 +214,16 @@
     setTimeout(()=>showHome(),80);
   }
 
-  const timer=setInterval(()=>{install();if(installed)clearInterval(timer)},80);
-  new MutationObserver(()=>{if(installed)tune();else install()}).observe(document.documentElement,{childList:true,subtree:true});
+  // v24.0.1
+  // ВАЖНО: не наблюдаем весь DOM через MutationObserver.
+  // tuneBuilder() сам добавляет служебную разметку, поэтому общий observer
+  // создавал цикл: mutation -> tune -> mutation -> tune -> ...
+  //
+  // Единственный источник обновления оболочки — штатный GOLDEN render().
+  // На первом запуске install() ждёт, пока app.js загрузится через gate.js,
+  // оборачивает render() и выполняет tune() один раз.
+  const timer=setInterval(()=>{
+    install();
+    if(installed)clearInterval(timer);
+  },80);
 })();
