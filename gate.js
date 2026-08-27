@@ -543,11 +543,23 @@
       return;
     }
 
-    const email=currentStatus?.user?.email || readSession()?.user?.email || "";
+    const identifier =
+      currentStatus?.user?.login_identifier ||
+      currentStatus?.access?.vk_user_id ||
+      currentStatus?.access?.email ||
+      currentStatus?.user?.email ||
+      readSession()?.user?.email ||
+      "";
+
+    const visibleLogin =
+      currentStatus?.access?.vk_user_id
+        ? `VK ID ${currentStatus.access.vk_user_id}`
+        : identifier;
+
     bar.innerHTML=`
       <div class="clean-bar-left">
         <strong>${currentMode==="ADMIN"?"ADMIN · ":""}FULL ACCESS</strong>
-        <span>${esc(email)} · CLEAN v23 · Spotlight 6 base</span>
+        <span>${esc(visibleLogin)} · CLEAN v23 · Spotlight 6 base</span>
       </div>
       <div class="clean-bar-actions">
         ${currentMode==="ADMIN"?'<button class="admin" id="clean-admin">⚙ Управление доступом</button>':""}
