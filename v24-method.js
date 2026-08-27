@@ -1,5 +1,5 @@
 // ============================================================
-// CLEAN v24.0.8 · Methodical normalization layer for GOLD 6
+// CLEAN v24.1.1 · Methodical normalization layer for GOLD 6
 // Keeps the original GOLD data/content-engine intact and corrects
 // systemic language/UX issues for the 69 generated lesson profiles.
 // ============================================================
@@ -181,10 +181,23 @@
 
   function success(l){
     return[
-      'I use at least 5 lesson words accurately.',
-      'I use at least two useful lesson phrases.',
-      `I use the target language (${grammarEn(l)}) accurately.`,
-      'My final result is clear and complete for another person.'
+      'My message includes the important topic details.',
+      'I use useful words and phrases from the lesson to make my meaning clear.',
+      'I use the lesson sentence patterns accurately.',
+      'Another person can understand or use my final result.'
+    ];
+  }
+
+  function manual1ACanDo(){
+    return 'I can describe a family member and explain how people in a family are related.';
+  }
+
+  function manual1ASuccess(){
+    return[
+      'I explain who the person is in the family.',
+      "I describe the person's appearance and character clearly.",
+      "I use has got / hasn't got and 's correctly.",
+      'My partner can identify the person from my description.'
     ];
   }
 
@@ -229,7 +242,7 @@
     }
     if(code==='P3-01')out.example=`${w[0]||'Word 1'} and ${w[1]||'word 2'} belong together because they are connected with today's topic.`;
     if(code==='P3-02'){
-      out.instruction=`Study the models: ${ff}. Find the target pattern “${gram}”. Explain what it helps the speaker do.`;
+      out.instruction=`Study the models: ${ff}. What do the highlighted sentence patterns help you say or ask? Make two examples of your own.`;
       out.example=`${l.micro_situation} Model language: ${f.slice(0,2).join(' ')}`;
     }
     if(code==='P4-01'){
@@ -240,17 +253,17 @@
       out.instruction=`Do not show your sheet. Ask questions with the lesson phrases and complete all missing information.`;
     }
     if(code==='P4-03'){
-      out.instruction=`Mission 1: use the topic words. Mission 2: apply ${gram}. Mission 3: solve a new situation. Mission 4: create ${article(bare)}.`;
+      out.instruction=`Mission 1: use the topic words. Mission 2: use today's sentence pattern correctly. Mission 3: solve a new situation. Mission 4: create ${article(bare)}.`;
     }
     if(code==='P4-04'){
       out.instruction=`Create ${article(bare)} for a real audience. Include accurate information, lesson language and a clear message.`;
       out.example=`${l.micro_situation} Useful language: ${ff}.`;
     }
     if(code==='P5-01'){
-      out.instruction=`Individually create a new short version of ${article(bare)}. Use three lesson words and the target language: ${gram}. Do not copy the class example.`;
+      out.instruction=`Individually create a new short version of ${article(bare)}. Use the lesson words and at least one sentence pattern from today's lesson. Do not copy the class example.`;
     }
     if(code==='P5-02'){
-      out.instruction=`Correct the lesson sentences. Check vocabulary, ${gram}, and meaning. Explain at least one correction.`;
+      out.instruction=`Correct the lesson sentences. Check the topic words, the lesson sentence pattern and the meaning. Explain at least one correction.`;
     }
     if(code==='P6-01'){
       out.instruction=`Complete: Now I can… My evidence is… Next time I need to…`;
@@ -308,6 +321,35 @@
     return out;
   }
 
+
+  function augmentManual1ALexicon(l){
+    if(idOf(l)!=='1a')return;
+    const extra=[
+      'grandmother','grandfather','hair','eyes','glasses',
+      'fair hair','dark hair','curly hair','kind','patient','funny'
+    ];
+    l.lexical_bank=l.lexical_bank||[];
+    for(const x of extra)if(!l.lexical_bank.includes(x))l.lexical_bank.push(x);
+  }
+
+  function tuneManual1A(l,kit){
+    const activities=(kit.activities||[]).map(a=>{
+      if(a.id!=='1A-P5-01')return {...a};
+      return{
+        ...a,
+        teacher:"Выдаёт новую карточку человека и критерии. После самостоятельного выполнения открывает чек-лист и модель. Если ученик обнаружил неточность, предлагает исправить её другим цветом. Если исправлять нечего, просит отметить самое сильное предложение и критерий, которому оно соответствует.",
+        students:"Самостоятельно пишут 4–5 предложений, проводят самопроверку. Исправляют обнаруженную неточность, если она есть; если исправление не требуется, выделяют лучшее доказательство успешного выполнения.",
+        criterion:"Есть родственная связь, два признака внешности и характеристика; has got / hasn't got и 's употреблены корректно; родственник угадывается; самопроверка завершена и результат подтверждён конкретным доказательством."
+      };
+    });
+    return{
+      ...kit,
+      canDo:manual1ACanDo(),
+      success:manual1ASuccess(),
+      activities
+    };
+  }
+
   function recommendedDefaults(l){
     const section=String(l?.section_title||'');
     if(/^English in Use/i.test(section))return['T05','F06'];
@@ -318,10 +360,10 @@
   }
 
   function installRecommendedDefaults(){
-    if(window.__KA_DEFS_2408)return true;
+    if(window.__KA_DEFS_2411)return true;
     if(typeof window.defs!=='function')return false;
     window.defs=function(l){return recommendedDefaults(l)};
-    window.__KA_DEFS_2408=true;
+    window.__KA_DEFS_2411=true;
     return true;
   }
 
@@ -333,20 +375,21 @@
   }
 
   function install(){
-    if(window.__KA_METHOD_2408)return true;
+    if(window.__KA_METHOD_2411)return true;
     if(!Array.isArray(window.LESSONS)||typeof window.buildLessonKit!=='function')return false;
     augmentFrames();
+    (window.LESSONS||[]).forEach(augmentManual1ALexicon);
     const base=window.buildLessonKit;
     window.buildLessonKit=function(l){
       const kit=base(l);
-      if(idOf(l)==='1a')return kit;
+      if(idOf(l)==='1a')return tuneManual1A(l,kit);
       const goal=canDo(l);
       const activities=(kit.activities||[]).map(a=>tuneActivity(l,a,goal));
       const homework=tuneHomework(l,kit.homework||[]);
       return {...kit,canDo:goal,success:success(l),activities,homework};
     };
-    window.KA_METHOD_V24={version:'24.0.8',productBare,grammarEn,canDo,success,recommendedDefaults};
-    window.__KA_METHOD_2408=true;
+    window.KA_METHOD_V24={version:'24.1.1',productBare,grammarEn,canDo,success,recommendedDefaults};
+    window.__KA_METHOD_2411=true;
     installRecommendedDefaults();
     const defaultsTimer=setInterval(()=>{if(installRecommendedDefaults())clearInterval(defaultsTimer)},25);
     try{ if(typeof reset==='function')setTimeout(()=>reset(),0); }catch(_){}
