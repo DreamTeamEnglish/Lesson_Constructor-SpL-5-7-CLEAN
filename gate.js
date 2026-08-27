@@ -1,5 +1,5 @@
 // ============================================================
-// CLEAN v23 · independent DreamTeam Access Gate
+// CLEAN v23.1 · independent DreamTeam Access Gate
 // No supabase-js.
 // Direct REST Auth = same route as the successful GUI tester.
 // App scripts are loaded ONLY after the gate has decided DEMO/FULL.
@@ -77,9 +77,9 @@
     });
   }
 
-  async function managed(accessToken, action, extra={}){
+  async function gateApi(accessToken, action, extra={}){
     ensureConfig();
-    return await request(base()+"/functions/v1/lesson-constructor-managed-access",{
+    return await request(base()+"/functions/v1/lesson-constructor-gate-v23",{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
@@ -158,7 +158,7 @@
         </div>
       </section>`;
     $("#clean-demo").onclick=()=>openApp("DEMO",null);
-    $("#clean-login-open").onclick=showLogin;
+    $("#clean-login-open").onclick=()=>showLogin();
   }
 
   function showLogin(message=""){
@@ -205,8 +205,8 @@
       const payload=await passwordLogin(email,password);
       const session=saveSession(payload);
 
-      step.textContent="2/3 · Проверка права доступа…";
-      const status=await managed(session.access_token,"my_status");
+      step.textContent="2/3 · CLEAN Gate: проверка права…";
+      const status=await gateApi(session.access_token,"status");
       currentStatus=status;
 
       if(status.must_change_password){
@@ -221,8 +221,8 @@
         );
       }
 
-      step.textContent="3/3 · Запись входа…";
-      await managed(session.access_token,"session_start");
+      step.textContent="3/3 · CLEAN Gate: запись входа…";
+      await gateApi(session.access_token,"start");
 
       await openApp(status.is_admin?"ADMIN":"FULL",status);
     }catch(e){
@@ -315,7 +315,7 @@
     $("#clean-admin-close").onclick=()=>overlay.hidden=true;
 
     try{
-      const result=await managed(session.access_token,"admin_list");
+      const result=await gateApi(session.access_token,"admin_list");
       const users=result.users||[];
       $("#clean-admin-list").innerHTML=users.length?users.map(u=>`
         <article class="clean-user">
@@ -343,7 +343,7 @@
         return;
       }
 
-      const status=await managed(session.access_token,"my_status");
+      const status=await gateApi(session.access_token,"status");
       currentStatus=status;
 
       if(status.must_change_password){
@@ -353,7 +353,7 @@
       }
 
       if(status.valid_full){
-        await managed(session.access_token,"session_start");
+        await gateApi(session.access_token,"start");
         await openApp(status.is_admin?"ADMIN":"FULL",status);
         return;
       }
