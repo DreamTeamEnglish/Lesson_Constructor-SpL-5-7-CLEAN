@@ -314,7 +314,19 @@ ${lines}
 
 
 
-  function inline(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}
+  function normalizedText(s){
+    return String(s??'')
+      .replace(/[\uFFFE\uFFFF]/g,'-')
+      .replace(/\u00AD/g,'');
+  }
+
+  function inline(s){
+    let x=esc(normalizedText(s));
+    x=x.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    x=x.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g,'$1<em>$2</em>');
+    x=x.replace(/(^|[^_])_([^_\n]+?)_(?!_)/g,'$1<em>$2</em>');
+    return x;
+  }
 
   function tableCells(line){
     let x=String(line||'').trim();
@@ -354,6 +366,20 @@ ${lines}
       const h=line.match(/^#{1,4}\s+(.+)$/);
       if(h){close();html+=`<h3>${inline(h[1])}</h3>`;i++;continue}
 
+      const phase=line.match(/^(P[1-6]\s*[·.\-]\s*.+)$/i);
+      if(phase){close();html+=`<h3 class="v24-phase-title">${inline(phase[1])}</h3>`;i++;continue}
+
+      const blockTitle=line.match(/^(Блок\s+\d+\s*[:·.\-]\s*.+)$/i);
+      if(blockTitle){close();html+=`<h4>${inline(blockTitle[1])}</h4>`;i++;continue}
+
+      const boldPair=line.match(/^\*\*(.+?):\s*\*\*\s*(.*)$/);
+      if(boldPair){
+        close();
+        html+=`<p class="v24-label-line"><strong>${inline(boldPair[1])}:</strong>${boldPair[2]?` ${inline(boldPair[2])}`:''}</p>`;
+        i++;
+        continue;
+      }
+
       const bullet=line.match(/^[-*•]\s+(.+)$/);
       if(bullet){
         if(list!=='ul'){close();html+='<ul>';list='ul'}
@@ -368,25 +394,127 @@ ${lines}
 
       close();
       const pair=line.match(/^([^:]{2,70}):\s*(.+)$/);
-      html+=pair?`<p><b>${esc(pair[1])}:</b> ${inline(pair[2])}</p>`:`<p>${inline(line)}</p>`;
+      html+=pair?`<p class="v24-label-line"><strong>${inline(pair[1])}:</strong> ${inline(pair[2])}</p>`:`<p>${inline(line)}</p>`;
       i++;
     }
     close();
     return html;
   }
 
+
+  function printCss(){
+    return `
+      @page{size:A4;margin:14mm 14mm 16mm}
+      *{box-sizing:border-box}
+      html,body{margin:0;padding:0;background:#fff;color:#173052}
+      body{font-family:Arial,"Segoe UI",sans-serif;font-size:10.5pt;line-height:1.42}
+      .print-document{max-width:100%;margin:0}
+      .print-document+.print-document{break-before:page;page-break-before:always}
+      .print-brand{
+        display:flex;align-items:center;gap:10px;
+        padding:0 0 8px;margin:0 0 14px;
+        border-bottom:2px solid #d2a029
+      }
+      .print-brand img{width:34px;height:34px;border-radius:7px;object-fit:cover}
+      .print-brand strong{display:block;font-family:Georgia,serif;font-size:15pt;color:#082a61}
+      .print-brand span{display:block;margin-top:2px;font-size:7.8pt;color:#69788c}
+      h1{font:700 22pt/1.08 Georgia,serif;color:#082a61;margin:0 0 12px}
+      h2{font:700 15pt/1.15 Georgia,serif;color:#0b376f;margin:15px 0 7px}
+      h3{font:700 12.5pt/1.18 Georgia,serif;color:#153f76;margin:14px 0 6px}
+      h4{font:700 11pt/1.2 Arial,sans-serif;color:#153f76;margin:11px 0 5px}
+      h1,h2,h3,h4{break-after:avoid;page-break-after:avoid}
+      p{margin:5px 0;orphans:3;widows:3}
+      .v24-label-line{margin:6px 0}
+      strong{font-weight:700}
+      em{font-style:italic}
+      ul,ol{margin:5px 0 8px;padding-left:20px}
+      li{margin:2.5px 0;orphans:3;widows:3}
+      .v24-table-wrap{width:100%;overflow:visible;margin:8px 0 12px}
+      table{width:100%;border-collapse:collapse;font-size:8.6pt;line-height:1.3}
+      thead{display:table-header-group}
+      tfoot{display:table-footer-group}
+      tr{break-inside:avoid;page-break-inside:avoid}
+      th,td{border:1px solid #cbd7e5;padding:5px 6px;vertical-align:top;text-align:left;overflow-wrap:anywhere}
+      th{background:#edf3fa;color:#123b70;font-weight:700}
+      .doc-meta{margin:-5px 0 13px;color:#68788d;font-size:8.5pt}
+      .doc-separator{display:none}
+      @media print{
+        a{color:inherit;text-decoration:none}
+      }
+    `;
+  }
+
+  function printableBlock(key,parts){
+    const labels={map:'Технологическая карта',plan:'Подробный конспект',homework:'Домашнее задание'};
+    const logo=new URL('assets/brand-logo.png',location.href).href;
+    return `<section class="print-document">
+      <div class="print-brand">
+        <img src="${logo}" alt="">
+        <div>
+          <strong>Копилочка Английского</strong>
+          <span>Методический конструктор · Spotlight 6 · GOLD STANDARD v24.1.0</span>
+        </div>
+      </div>
+      <h1>${labels[key]}</h1>
+      <div class="doc-meta">Spotlight 6 · ${esc(lesson.legacy_id)} · ${esc(lesson.ktp_topic)}</div>
+      ${format(parts[key])}
+    </section>`;
+  }
+
+  function printDocuments(parts,keys){
+    const frame=document.createElement('iframe');
+    frame.setAttribute('aria-hidden','true');
+    frame.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+    document.body.appendChild(frame);
+
+    const title=keys.length===1
+      ? ({map:'Технологическая карта',plan:'Подробный конспект',homework:'Домашнее задание'}[keys[0]])
+      : 'Комплект документов';
+
+    const doc=frame.contentDocument;
+    doc.open();
+    doc.write(`<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${esc(title)} · Spotlight 6</title><style>${printCss()}</style></head><body>${keys.map(k=>printableBlock(k,parts)).join('')}</body></html>`);
+    doc.close();
+
+    const win=frame.contentWindow;
+    const cleanup=()=>setTimeout(()=>frame.remove(),800);
+
+    const run=()=>{
+      const imgs=[...doc.images];
+      const wait=imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{
+        img.addEventListener('load',res,{once:true});
+        img.addEventListener('error',res,{once:true});
+      }));
+      Promise.all(wait).then(()=>{
+        setTimeout(()=>{
+          try{
+            win.focus();
+            win.print();
+          }finally{
+            win.onafterprint=cleanup;
+            setTimeout(cleanup,5000);
+          }
+        },120);
+      });
+    };
+
+    if(doc.readyState==='complete')run();
+    else frame.addEventListener('load',run,{once:true});
+  }
+
   function showDocs(parts,audit={score:100,issues:[]}){
     let activeDoc='map';
     const labels={map:'Технологическая карта',plan:'Подробный конспект',homework:'Домашнее задание'};
     const draw=()=>{
-      const m=overlay('Единый комплект документов',4,`<div class="v24-doc-status"><span class="${audit.issues.length?'warn':'ok'}">${audit.issues.length?`Проверка: ${audit.score}/100`:'Проверка структуры: готово ✓'}</span><p>Содержание получено от выбранного ИИ. Структуру и оформление задаёт Конструктор.</p></div><div class="v24-ai-tabs">${Object.entries(labels).map(([k,v])=>`<button data-doc="${k}" class="${k===activeDoc?'on':''}">${v}</button>`).join('')}</div><article class="v24-final-doc"><div class="v24-doc-brand"><b>Копилочка Английского</b><span>Spotlight 6 · ${esc(lesson.legacy_id)} · ${esc(lesson.ktp_topic)}</span></div><h2>${labels[activeDoc]}</h2>${format(parts[activeDoc])}</article>`,`<button data-fix>Исправить ответ</button><button data-copy-doc>Скопировать документ</button><button class="gold" data-print>Печать / PDF</button>`);
+      const m=overlay('Единый комплект документов',4,`<div class="v24-doc-status"><span class="${audit.issues.length?'warn':'ok'}">${audit.issues.length?`Проверка: ${audit.score}/100`:'Проверка структуры: готово ✓'}</span><p>Содержание получено от выбранного ИИ. Структуру и оформление задаёт Конструктор.</p></div><div class="v24-ai-tabs">${Object.entries(labels).map(([k,v])=>`<button data-doc="${k}" class="${k===activeDoc?'on':''}">${v}</button>`).join('')}</div><article class="v24-final-doc"><div class="v24-doc-brand"><b>Копилочка Английского</b><span>Spotlight 6 · ${esc(lesson.legacy_id)} · ${esc(lesson.ktp_topic)}</span></div><h2>${labels[activeDoc]}</h2>${format(parts[activeDoc])}</article>`,`<button data-fix>Исправить ответ</button><button data-copy-doc>Скопировать документ</button><button data-print>Печать документа</button><button class="gold" data-print-all>PDF: весь комплект</button>`);
       m.querySelectorAll('[data-doc]').forEach(b=>b.onclick=()=>{activeDoc=b.dataset.doc;draw()});
       m.querySelector('[data-fix]').onclick=step3;
       m.querySelector('[data-copy-doc]').onclick=async()=>{
         await navigator.clipboard.writeText(parts[activeDoc]);
         m.querySelector('[data-copy-doc]').textContent='Скопировано ✓';
       };
-      m.querySelector('[data-print]').onclick=()=>window.print();
+      m.querySelector('[data-print]').onclick=()=>printDocuments(parts,[activeDoc]);
+      m.querySelector('[data-print-all]').onclick=()=>printDocuments(parts,['map','plan','homework']);
     };
     draw();
   }

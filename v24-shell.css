@@ -877,3 +877,48 @@ body.v24-builder-mode #phases .total{
   .v24-table-wrap{overflow:visible}
 }
 
+
+
+/* ============================================================
+   CLEAN v24.1.0 · PRINT / PDF REPAIR
+   ============================================================ */
+.v24-final-doc em{font-style:italic}
+.v24-final-doc strong{font-weight:800}
+.v24-final-doc h4{margin:15px 0 6px;color:#173f76}
+.v24-final-doc .v24-label-line{margin:6px 0}
+
+/* If the user presses Ctrl+P while the AI document modal is open,
+   never print the builder underneath. The normal print buttons use
+   an isolated iframe and are even safer. */
+@media print{
+  html,body{
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    background:#fff!important;
+  }
+  #app-shell,
+  #gate-root,
+  .v24-home,
+  .v24-modal,
+  body>.clean-gate{
+    display:none!important;
+  }
+  body>.v24-ai-modal{
+    display:block!important;
+    position:static!important;
+    inset:auto!important;
+    background:#fff!important;
+    padding:0!important;
+    backdrop-filter:none!important;
+  }
+  body>.v24-ai-modal .v24-ai-panel{
+    width:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    overflow:visible!important;
+    box-shadow:none!important;
+    border-radius:0!important;
+  }
+}
+
