@@ -180,27 +180,216 @@ P6 Рефлексия и перенос — доказательство can-do 
   }
 
   function step3(){
-    const m=overlay('Верните результат в конструктор',3,`<p>Скопируйте <b>весь</b> ответ ИИ вместе со служебными маркерами.</p><textarea class="v24-returned" placeholder="Вставьте сюда полный ответ ИИ…">${esc(returnedText)}</textarea><small>Текст разбирается в вашем браузере. Конструктор ищет три служебных раздела и затем оформляет их одинаково.</small>`,`<button data-back>Назад</button><button class="gold" data-parse>Проверить и оформить</button>`);
+    const m=overlay('Верните результат в конструктор',3,`<p>Скопируйте <b>весь</b> ответ ИИ вместе со служебными маркерами.</p><textarea class="v24-returned" placeholder="Вставьте сюда полный ответ ИИ…">${esc(returnedText)}</textarea><small>Текст разбирается в вашем браузере. Перед оформлением Конструктор проверит не только маркеры, но и полноту трёх документов.</small>`,`<button data-back>Назад</button><button class="gold" data-parse>Проверить и оформить</button>`);
     m.querySelector('[data-back]').onclick=step2;
-    m.querySelector('[data-parse]').onclick=()=>{returnedText=m.querySelector('.v24-returned').value;const parts=parse(returnedText);const missing=[];if(!parts.map)missing.push('технологическая карта');if(!parts.plan)missing.push('подробный конспект');if(!parts.homework)missing.push('домашнее задание');if(missing.length){const box=m.querySelector('.v24-ai-body');box.insertAdjacentHTML('afterbegin',`<div class="v24-ai-error">Не удалось распознать: <b>${missing.join(', ')}</b>. Проверьте служебные маркеры.</div>`);return}showDocs(parts)};
+    m.querySelector('[data-parse]').onclick=()=>{
+      returnedText=m.querySelector('.v24-returned').value;
+      const parts=parse(returnedText);
+      const missing=[];
+      if(!parts.map)missing.push('технологическая карта');
+      if(!parts.plan)missing.push('подробный конспект');
+      if(!parts.homework)missing.push('домашнее задание');
+      if(missing.length){
+        m.querySelector('.v24-ai-error')?.remove();
+        const box=m.querySelector('.v24-ai-body');
+        box.insertAdjacentHTML('afterbegin',`<div class="v24-ai-error">Не удалось распознать: <b>${missing.join(', ')}</b>. Проверьте служебные маркеры.</div>`);
+        return;
+      }
+      const audit=validate(parts);
+      if(audit.issues.length)showAudit(parts,audit);
+      else showDocs(parts,audit);
+    };
+  }
+
+  function normalizeResponse(text){
+    return String(text||'')
+      .replace(/\u00a0/g,' ')
+      .replace(/[［【]/g,'[')
+      .replace(/[］】]/g,']')
+      .replace(/^\s*```(?:markdown|md|text)?\s*$/gim,'')
+      .replace(/^\s*(?:\[\[|\[)?\s*(TECH_MAP|LESSON_PLAN|HOMEWORK)_BEGIN\s*(?:\]\]|\])?\s*:?\s*$/gim,'[[$1_BEGIN]]')
+      .replace(/^\s*(?:\[\[|\[)?\s*(TECH_MAP|LESSON_PLAN|HOMEWORK)_END\s*(?:\]\]|\])?\s*:?\s*$/gim,'[[$1_END]]')
+      .trim();
   }
 
   function parse(text){
-    const part=k=>{const m=String(text||'').match(new RegExp(`\\[\\[\\s*${k}_BEGIN\\s*\\]\\]([\\s\\S]*?)\\[\\[\\s*${k}_END\\s*\\]\\]`,'i'));return m?.[1]?.trim()||''};
-    return {map:part('TECH_MAP'),plan:part('LESSON_PLAN'),homework:part('HOMEWORK')};
+    const normalized=normalizeResponse(text);
+    const part=k=>{
+      const m=normalized.match(new RegExp(`\\[\\[\\s*${k}_BEGIN\\s*\\]\\]([\\s\\S]*?)\\[\\[\\s*${k}_END\\s*\\]\\]`,'i'));
+      return m?.[1]?.trim()||'';
+    };
+    return {map:part('TECH_MAP'),plan:part('LESSON_PLAN'),homework:part('HOMEWORK'),normalized};
   }
+
+  function count(text,re){return (String(text||'').match(re)||[]).length}
+  function phasePresent(text,n){
+    const names=[
+      'Мотивация и актуализация',
+      'Целеполагание и критерии',
+      'Языковая и речевая подготовка',
+      'Центральная коммуникативная задача',
+      'Контроль, обратная связь и коррекция',
+      'Рефлексия и перенос'
+    ];
+    return new RegExp(`(?:\\bP${n}\\b|ЭТАП\\s*${n}\\b|${names[n-1]})`,'i').test(String(text||''));
+  }
+
+  function validate(parts){
+    const issues=[];
+    const add=(doc,message)=>issues.push({doc,message});
+    const labels={map:'Карта',plan:'Конспект',homework:'Домашнее задание',all:'Комплект'};
+
+    ['map','plan'].forEach(k=>{
+      for(let n=1;n<=6;n++)if(!phasePresent(parts[k],n))add(k,`не найден этап P${n}`);
+    });
+
+    if(parts.map.length<1800)add('map','карта выглядит слишком краткой');
+    ['личностн','метапредметн','предметн','оборудован','УУД'].forEach(x=>{
+      if(!new RegExp(x,'i').test(parts.map))add('map',`не найден обязательный блок: ${x}`);
+    });
+
+    if(parts.plan.length<3200)add('plan','конспект выглядит слишком кратким');
+    [
+      ['подготов','подготовка'],
+      ['инструкц','точная инструкция'],
+      ['провер','проверка результата'],
+      ['поддерж','поддержка'],
+      ['усложнен|усложнени','усложнение / повышенный уровень']
+    ].forEach(([rx,label])=>{
+      if(!new RegExp(rx,'i').test(parts.plan))add('plan',`не найден обязательный элемент: ${label}`);
+    });
+    if(count(parts.plan,/[A-Za-z]{3,}/g)<18)add('plan','слишком мало конкретных английских реплик и примеров');
+
+    for(let n=1;n<=5;n++){
+      if(!new RegExp(`Вариант\\s*${n}\\b`,'i').test(parts.homework))add('homework',`не найден вариант ${n}`);
+    }
+    if(parts.homework.length<2600)add('homework','домашнее задание выглядит слишком кратким');
+    if(count(parts.homework,/Проверь себя|чек[- ]?лист/gi)<4)add('homework','не хватает чек-листов самопроверки для вариантов');
+    if(count(parts.homework,/Полный(?: разв[её]рнутый)? пример|Полный пример|Пример:/gi)<4)add('homework','не хватает полных тематических примеров');
+    if(!/Реплика учителя|Как объявить|объявлени[ея] задания/i.test(parts.homework))add('homework','не найдена готовая реплика учителя для объявления ДЗ');
+
+    const all=`${parts.map}\n${parts.plan}\n${parts.homework}`;
+    if(/file:\/\/\/|https?:\/\/|localhost|127\.0\.0\.1/i.test(all))add('all','в ответ попал URL или технический путь — его нельзя печатать в документах');
+    if(/\[\[(?:TECH_MAP|LESSON_PLAN|HOMEWORK)_(?:BEGIN|END)\]\]/i.test(all))add('all','внутри документов остались служебные маркеры');
+
+    const unique=[];
+    const seen=new Set();
+    for(const i of issues){
+      const key=`${i.doc}:${i.message}`;
+      if(!seen.has(key)){seen.add(key);unique.push(i)}
+    }
+    const score=Math.max(55,100-unique.length*5);
+    return {issues:unique,score,labels};
+  }
+
+  function repairPrompt(audit){
+    const lines=audit.issues.map((x,i)=>`${i+1}. ${audit.labels[x.doc]||'Комплект'}: ${x.message}.`).join('\n');
+    return `Доработай свой ПРЕДЫДУЩИЙ ответ для конструктора урока. Не создавай новый сценарий и не меняй выбранные этапы, Activities, время, тип или форму урока.
+
+Конструктор обнаружил следующие недочёты:
+${lines}
+
+Исправь только эти недочёты, сохрани всю удачную конкретику предыдущего ответа и верни ПОЛНЫЙ комплект заново — все три документа целиком.
+
+Обязательно сохрани точные служебные маркеры:
+[[TECH_MAP_BEGIN]] ... [[TECH_MAP_END]]
+[[LESSON_PLAN_BEGIN]] ... [[LESSON_PLAN_END]]
+[[HOMEWORK_BEGIN]] ... [[HOMEWORK_END]]
+
+Не добавляй текст до [[TECH_MAP_BEGIN]] и после [[HOMEWORK_END]].`;
+  }
+
+  function showAudit(parts,audit){
+    const grouped={};
+    audit.issues.forEach(x=>(grouped[x.doc]??=[]).push(x.message));
+    const rows=Object.entries(grouped).map(([doc,items])=>`<section><h3>${esc(audit.labels[doc]||'Комплект')}</h3><ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></section>`).join('');
+    const m=overlay('Проверка ответа ИИ',3,`<div class="v24-quality-head"><div><b>${audit.score}/100</b><span>структурная готовность</span></div><p>Маркеры распознаны, но перед оформлением найдены пункты, которые лучше уточнить. Проверяется только полнота документов — собранный вами урок не меняется.</p></div><div class="v24-quality-list">${rows}</div><div class="v24-ai-note"><b>Лучший вариант:</b> вернитесь в тот же чат с ИИ и вставьте короткий запрос на доработку. Модель увидит свой предыдущий ответ и исправит только найденные места.</div>`,`<button data-edit>Вернуться к ответу</button><button data-repair>Скопировать запрос на доработку</button><button class="gold" data-anyway>Оформить всё равно</button>`);
+    m.querySelector('[data-edit]').onclick=step3;
+    m.querySelector('[data-repair]').onclick=async()=>{
+      await navigator.clipboard.writeText(repairPrompt(audit));
+      m.querySelector('[data-repair]').textContent='Запрос скопирован ✓';
+    };
+    m.querySelector('[data-anyway]').onclick=()=>showDocs(parts,audit);
+  }
+
+
 
   function inline(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}
+
+  function tableCells(line){
+    let x=String(line||'').trim();
+    if(x.startsWith('|'))x=x.slice(1);
+    if(x.endsWith('|'))x=x.slice(0,-1);
+    return x.split('|').map(c=>c.trim());
+  }
+
+  function isTableSep(line){
+    const cells=tableCells(line);
+    return cells.length>1&&cells.every(c=>/^:?-{3,}:?$/.test(c.replace(/\s/g,'')));
+  }
+
   function format(text){
-    const lines=String(text||'').replace(/```(?:markdown|text)?/gi,'').split(/\r?\n/);let html='',list=false;
-    const close=()=>{if(list){html+='</ul>';list=false}};
-    for(const raw of lines){const line=raw.trim();if(!line){close();continue}const h=line.match(/^#{1,4}\s+(.+)$/);if(h){close();html+=`<h3>${inline(h[1])}</h3>`;continue}const bullet=line.match(/^[-*•]\s+(.+)$/);if(bullet){if(!list){html+='<ul>';list=true}html+=`<li>${inline(bullet[1])}</li>`;continue}close();const pair=line.match(/^([^:]{2,70}):\s*(.+)$/);html+=pair?`<p><b>${esc(pair[1])}:</b> ${inline(pair[2])}</p>`:`<p>${inline(line)}</p>`}close();return html;
+    const lines=String(text||'').replace(/```(?:markdown|md|text)?/gi,'').split(/\r?\n/);
+    let html='',list='',i=0;
+    const close=()=>{if(list){html+=`</${list}>`;list=''}};
+    while(i<lines.length){
+      const line=lines[i].trim();
+      if(!line){close();i++;continue}
+      if(/^---+$/.test(line)){close();i++;continue}
+
+      if(line.includes('|') && i+1<lines.length && isTableSep(lines[i+1])){
+        close();
+        const heads=tableCells(line);
+        i+=2;
+        const rows=[];
+        while(i<lines.length){
+          const row=lines[i].trim();
+          if(!row||!row.includes('|')||/^#{1,4}\s+/.test(row))break;
+          rows.push(tableCells(row));i++;
+        }
+        html+=`<div class="v24-table-wrap"><table><thead><tr>${heads.map(c=>`<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${heads.map((_,j)=>`<td>${inline(r[j]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+        continue;
+      }
+
+      const h=line.match(/^#{1,4}\s+(.+)$/);
+      if(h){close();html+=`<h3>${inline(h[1])}</h3>`;i++;continue}
+
+      const bullet=line.match(/^[-*•]\s+(.+)$/);
+      if(bullet){
+        if(list!=='ul'){close();html+='<ul>';list='ul'}
+        html+=`<li>${inline(bullet[1])}</li>`;i++;continue
+      }
+
+      const ordered=line.match(/^\d+[.)]\s+(.+)$/);
+      if(ordered){
+        if(list!=='ol'){close();html+='<ol>';list='ol'}
+        html+=`<li>${inline(ordered[1])}</li>`;i++;continue
+      }
+
+      close();
+      const pair=line.match(/^([^:]{2,70}):\s*(.+)$/);
+      html+=pair?`<p><b>${esc(pair[1])}:</b> ${inline(pair[2])}</p>`:`<p>${inline(line)}</p>`;
+      i++;
+    }
+    close();
+    return html;
   }
 
-  function showDocs(parts){
-    let activeDoc='map';const labels={map:'Технологическая карта',plan:'Подробный конспект',homework:'Домашнее задание'};
-    const draw=()=>{const m=overlay('Единый комплект документов',4,`<p>Содержание получено от выбранного ИИ. Структуру и оформление задаёт Конструктор.</p><div class="v24-ai-tabs">${Object.entries(labels).map(([k,v])=>`<button data-doc="${k}" class="${k===activeDoc?'on':''}">${v}</button>`).join('')}</div><article class="v24-final-doc"><div class="v24-doc-brand"><b>Копилочка Английского</b><span>Spotlight 6 · ${esc(lesson.legacy_id)} · ${esc(lesson.ktp_topic)}</span></div><h2>${labels[activeDoc]}</h2>${format(parts[activeDoc])}</article>`,`<button data-fix>Исправить ответ</button><button class="gold" data-print>Печать / PDF</button>`);m.querySelectorAll('[data-doc]').forEach(b=>b.onclick=()=>{activeDoc=b.dataset.doc;draw()});m.querySelector('[data-fix]').onclick=step3;m.querySelector('[data-print]').onclick=()=>window.print()};draw();
+  function showDocs(parts,audit={score:100,issues:[]}){
+    let activeDoc='map';
+    const labels={map:'Технологическая карта',plan:'Подробный конспект',homework:'Домашнее задание'};
+    const draw=()=>{
+      const m=overlay('Единый комплект документов',4,`<div class="v24-doc-status"><span class="${audit.issues.length?'warn':'ok'}">${audit.issues.length?`Проверка: ${audit.score}/100`:'Проверка структуры: готово ✓'}</span><p>Содержание получено от выбранного ИИ. Структуру и оформление задаёт Конструктор.</p></div><div class="v24-ai-tabs">${Object.entries(labels).map(([k,v])=>`<button data-doc="${k}" class="${k===activeDoc?'on':''}">${v}</button>`).join('')}</div><article class="v24-final-doc"><div class="v24-doc-brand"><b>Копилочка Английского</b><span>Spotlight 6 · ${esc(lesson.legacy_id)} · ${esc(lesson.ktp_topic)}</span></div><h2>${labels[activeDoc]}</h2>${format(parts[activeDoc])}</article>`,`<button data-fix>Исправить ответ</button><button data-copy-doc>Скопировать документ</button><button class="gold" data-print>Печать / PDF</button>`);
+      m.querySelectorAll('[data-doc]').forEach(b=>b.onclick=()=>{activeDoc=b.dataset.doc;draw()});
+      m.querySelector('[data-fix]').onclick=step3;
+      m.querySelector('[data-copy-doc]').onclick=async()=>{
+        await navigator.clipboard.writeText(parts[activeDoc]);
+        m.querySelector('[data-copy-doc]').textContent='Скопировано ✓';
+      };
+      m.querySelector('[data-print]').onclick=()=>window.print();
+    };
+    draw();
   }
 
-  window.KA_V24_AI={open:step1,buildPrompt:prompt,parse};
+  window.KA_V24_AI={open:step1,buildPrompt:prompt,parse,validate,repairPrompt,format};
 })();
