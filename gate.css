@@ -205,3 +205,11 @@ body.gate-pending #app-shell{visibility:hidden}
   font:900 22px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace
 }
 .recovery-code-card{max-width:650px}
+
+/* CLEAN v23.3.1 · honor hidden fields in admin create form */
+#admin-new-email-wrap[hidden],
+#admin-new-vk-wrap[hidden],
+.nav-admin-create-form [hidden] {
+  display: none !important;
+}
+
