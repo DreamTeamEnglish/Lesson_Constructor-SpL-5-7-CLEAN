@@ -1,0 +1,77 @@
+/* CLEAN v23 · independent access gate */
+body.gate-pending{margin:0;background:#071c49;overflow:hidden}
+body.gate-pending #app-shell{visibility:hidden}
+
+#gate-root{font-family:Arial,sans-serif}
+.clean-gate{
+  position:fixed;inset:0;z-index:2147483000;
+  display:grid;place-items:center;padding:24px;
+  background:
+    radial-gradient(circle at 50% 20%,#174b9c 0,#0c2f6c 24%,#071c49 62%);
+  color:#10264e
+}
+.clean-gate[hidden]{display:none!important}
+.clean-gate-card{
+  width:min(720px,calc(100vw - 32px));box-sizing:border-box;
+  border:1px solid #d8ba65;border-radius:24px;background:#fff;
+  padding:34px;box-shadow:0 30px 90px #0006
+}
+.clean-gate-brand{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.clean-gate-brand img{width:58px;height:58px;object-fit:cover;border-radius:12px}
+.clean-gate-brand b{display:block;font:700 23px Georgia,serif;color:#092451}
+.clean-gate-brand span{display:block;margin-top:3px;color:#7a8798;font-size:12px}
+.clean-kicker{color:#9d7724;font-size:12px;font-weight:800;letter-spacing:.13em}
+.clean-gate-card h1{margin:10px 0 12px;font:700 40px/1.05 Georgia,serif;color:#092451}
+.clean-gate-card>p{color:#647286;line-height:1.55;font-size:15px}
+.clean-gate-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+.clean-btn{
+  border:1px solid #b9c6d8;border-radius:10px;background:#fff;color:#173c78;
+  padding:14px 16px;font:700 15px Arial;cursor:pointer
+}
+.clean-btn.gold{border-color:#c99a2e;background:#c99a2e;color:#071c49}
+.clean-login{display:grid;gap:12px;margin-top:18px}
+.clean-login label{display:grid;gap:6px;color:#42516a;font-size:12px;font-weight:700}
+.clean-login input{
+  width:100%;box-sizing:border-box;border:1px solid #c8d2df;border-radius:9px;
+  padding:12px 13px;font:inherit
+}
+.clean-error{padding:10px 12px;background:#fff0ef;color:#a93329;border-radius:9px;white-space:pre-wrap}
+.clean-success{padding:10px 12px;background:#edf9f1;color:#17663a;border-radius:9px}
+.clean-small{margin-top:16px;color:#7b8797;font-size:12px}
+.clean-debug{margin-top:14px;padding:10px;border-radius:8px;background:#f3f6fb;color:#607087;font:11px Consolas,monospace}
+.clean-brand-logo{width:46px;height:46px;object-fit:cover;border-radius:9px;border:2px solid #c99a2e}
+
+#clean-accessbar{
+  min-height:0;background:#fff;border-bottom:1px solid #d8e0eb;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 24px
+}
+#clean-accessbar:not(:empty){padding-top:8px;padding-bottom:8px}
+.clean-bar-left strong{display:block;color:#173c78}
+.clean-bar-left span{font-size:11px;color:#718096}
+.clean-bar-actions{display:flex;gap:8px;align-items:center}
+.clean-bar-actions button{border:1px solid #c7d1df;background:#fff;color:#173c78;border-radius:7px;padding:7px 10px;font-weight:700;cursor:pointer}
+.clean-bar-actions .admin{border-color:#c99a2e;background:#fff9e8}
+
+.clean-admin-overlay{
+  position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;
+  background:#071c49cf;padding:20px
+}
+.clean-admin-overlay[hidden]{display:none!important}
+.clean-admin-card{
+  width:min(1000px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:18px;
+  padding:24px;color:#17243a
+}
+.clean-admin-head{display:flex;justify-content:space-between;gap:15px;align-items:center}
+.clean-admin-head h2{font:700 28px Georgia;margin:0;color:#092451}
+.clean-admin-list{display:grid;gap:8px;margin-top:18px}
+.clean-user{
+  border:1px solid #d8e0eb;border-radius:11px;padding:12px;
+  display:grid;grid-template-columns:1fr auto;gap:10px
+}
+.clean-user small{display:block;color:#788699;margin-top:4px}
+.clean-chip{display:inline-block;margin:5px 4px 0 0;padding:4px 7px;border-radius:999px;background:#eef2f8;font-size:10px;font-weight:800}
+.clean-user button{align-self:center}
+@media(max-width:650px){
+  .clean-gate-actions{grid-template-columns:1fr}
+  .clean-gate-card h1{font-size:32px}
+}

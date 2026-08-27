@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Копилочка Английского · Spotlight 5–7 CLEAN</title>
+
+  <!-- Original Spotlight 6 PROMO styles -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="homework.css">
+  <link rel="stylesheet" href="print-fixes.css">
+  <link rel="stylesheet" href="ai.css">
+  <link rel="stylesheet" href="v17.css">
+
+  <!-- New independent gate -->
+  <link rel="stylesheet" href="gate.css">
+</head>
+<body class="gate-pending">
+
+  <div id="gate-root"></div>
+
+  <!-- GOLDEN PROMO SHELL. It is not initialized until gate.js calls loadPromo(). -->
+  <div id="app-shell" hidden>
+    <header>
+      <div class="brand">
+        <img class="clean-brand-logo" src="assets/brand-logo.png" alt="">
+        <span>
+          <strong>Копилочка Английского</strong>
+          <small>Методический конструктор · Spotlight 6 · CLEAN v23</small>
+        </span>
+      </div>
+      <div class="header-actions">
+        <button class="gold" id="docs">Открыть документы</button>
+        <button id="save">Скачать комплект ZIP</button>
+      </div>
+    </header>
+
+    <div id="clean-accessbar"></div>
+
+    <section id="setup"></section>
+    <section id="banner"></section>
+
+    <main>
+      <aside id="phases"></aside>
+      <section id="builder"></section>
+      <aside id="library"></aside>
+      <aside id="drawer" hidden></aside>
+    </main>
+  </div>
+
+  <script src="access-config.js"></script>
+  <script src="gate.js"></script>
+</body>
+</html>
