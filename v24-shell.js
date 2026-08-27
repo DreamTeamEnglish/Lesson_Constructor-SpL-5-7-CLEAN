@@ -109,6 +109,7 @@
     h.hidden=false;
     homeShown=true;
     document.body.classList.add('v24-home-mode');
+    document.body.classList.remove('v24-builder-mode');
     document.documentElement.classList.add('v24-home-lock');
     window.scrollTo(0,0);
   }
@@ -118,31 +119,51 @@
     if(h)h.hidden=true;
     homeShown=false;
     document.body.classList.remove('v24-home-mode');
+    document.body.classList.add('v24-builder-mode');
     document.documentElement.classList.remove('v24-home-lock');
     window.scrollTo(0,0);
   }
 
   function setupTop(){
     const setup=$('#setup');if(!setup)return;
+
+    // Только параметры выбора. Время и восстановление сценария —
+    // отдельной компактной строкой ниже.
+    setup.querySelector('.v24-reset-scenario')?.remove();
+
     if(!setup.querySelector('.v24-grade-field')){
-      const label=document.createElement('label');label.className='v24-grade-field';
+      const label=document.createElement('label');
+      label.className='v24-grade-field';
       label.innerHTML='<span>Класс</span><select disabled><option>6</option></select>';
       setup.prepend(label);
     }
+
     setup.querySelectorAll('label').forEach(label=>{
       const text=(label.childNodes[0]?.textContent||'').trim();
-      if(text==='Модуль')label.childNodes[0].textContent='Модуль';
       if(text==='Урок и тема по КТП')label.childNodes[0].textContent='Урок по КТП';
     });
-    if(!setup.querySelector('.v24-reset-scenario')){
-      const b=document.createElement('button');b.className='v24-reset-scenario';b.type='button';b.textContent='↻ Рекомендуемый сценарий';b.onclick=()=>reset();setup.appendChild(b);
-    }
   }
 
   function compactBanner(){
-    const banner=$('#banner');if(!banner)return;
-    const sides=banner.children;
-    if(sides[1])sides[1].classList.add('v24-hide-scenario-duplicate');
+    const banner=$('#banner');
+    if(!banner || typeof lesson==='undefined' || typeof stages==='undefined')return;
+
+    const total=stages
+      .flatMap(s=>s.blocks)
+      .reduce((n,b)=>n+Number(b.min||0),0);
+
+    banner.className='banner v24-compact-banner';
+    banner.innerHTML=`
+      <div class="v24-topic">
+        <h1>${esc(lesson.ktp_topic)}</h1>
+        <p>${esc(lesson.section_title)} · речевой продукт: <b>${esc(lesson.product)}</b></p>
+      </div>
+      <div class="v24-topic-tools">
+        <span class="v24-total-time"><b>${total}</b> минут</span>
+        <button class="v24-reset-scenario" type="button">↻ Рекомендуемый сценарий</button>
+      </div>`;
+    const resetBtn=banner.querySelector('.v24-reset-scenario');
+    if(resetBtn)resetBtn.onclick=()=>reset();
   }
 
   function tunePhases(){
@@ -207,6 +228,8 @@
     const oldAi=$('#ai-generate');if(oldAi)oldAi.style.display='none';
     const oldLib=$('#ai-library');if(oldLib)oldLib.style.display='none';
     const cleanHome=$('#clean-home');if(cleanHome)cleanHome.textContent='← К экрану входа';
+    const subtitle=document.querySelector('#app-shell header .brand small');
+    if(subtitle)subtitle.textContent='Методический конструктор · Spotlight 6 · GOLD STANDARD v24.0.4';
   }
 
   function tune(){
