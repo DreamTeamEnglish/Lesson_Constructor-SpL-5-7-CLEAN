@@ -3,6 +3,7 @@
 // UI/navigation layer. Does NOT rewrite LESSONS, Activities or content engine.
 // ============================================================
 (function(){
+  const CLEAN_UI_VERSION='24.0.5';
   'use strict';
 
   const DRAFT_KEY='ka_spotlight6_clean_v24_draft';
@@ -229,7 +230,7 @@
     const oldLib=$('#ai-library');if(oldLib)oldLib.style.display='none';
     const cleanHome=$('#clean-home');if(cleanHome)cleanHome.textContent='← К экрану входа';
     const subtitle=document.querySelector('#app-shell header .brand small');
-    if(subtitle)subtitle.textContent='Методический конструктор · Spotlight 6 · GOLD STANDARD v24.0.4';
+    if(subtitle)subtitle.textContent=`Методический конструктор · Spotlight 6 · GOLD STANDARD v${CLEAN_UI_VERSION}`;
   }
 
   function tune(){
