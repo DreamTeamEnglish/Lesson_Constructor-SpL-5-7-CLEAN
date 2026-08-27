@@ -424,15 +424,62 @@
             <div id="clean-recover-error" class="clean-error" hidden></div>
             <button class="clean-btn gold" id="clean-recover-submit">Сменить пароль и войти</button>
             <button class="clean-btn" id="clean-recover-back">← Назад ко входу</button>
-            <a class="clean-admin-contact" href="https://vk.ru/im?sel=-229391051" target="_blank" rel="noopener">✉ Нет кода восстановления? Напишите администратору</a>
+            <section class="clean-admin-help">
+              <b>Нет кода восстановления?</b>
+              <p>Скопируйте готовое сообщение и отправьте его администратору — так будет сразу понятно, какой доступ нужно восстановить.</p>
+              <textarea id="clean-admin-help-message" readonly></textarea>
+              <div class="clean-admin-help-actions">
+                <button class="clean-btn" id="clean-copy-admin-message" type="button">Скопировать сообщение</button>
+                <button class="clean-btn gold" id="clean-open-admin-chat" type="button">✉ Написать администратору</button>
+              </div>
+            </section>
           </div>
         </div>
       </section>`;
 
+    const recoveryIdentifier=$("#clean-recover-identifier");
+
+    function buildAdminHelpMessage(){
+      const login=recoveryIdentifier.value.trim() || "не указан";
+      return [
+        "Здравствуйте!",
+        "",
+        "Не могу восстановить доступ к конструктору Spotlight 5–7: забыл(а) пароль и код восстановления.",
+        `Мой логин (email или VK ID): ${login}`,
+        "",
+        "Помогите, пожалуйста, сбросить пароль и выдать новый временный пароль."
+      ].join("\n");
+    }
+
+    function refreshAdminHelpMessage(){
+      $("#clean-admin-help-message").value=buildAdminHelpMessage();
+    }
+
     $("#clean-recover-back").onclick=()=>showLogin();
     $("#clean-recover-submit").onclick=doRecovery;
+    recoveryIdentifier.addEventListener("input",refreshAdminHelpMessage);
+    refreshAdminHelpMessage();
+
+    $("#clean-copy-admin-message").onclick=async()=>{
+      const text=buildAdminHelpMessage();
+      try{
+        await navigator.clipboard.writeText(text);
+        $("#clean-copy-admin-message").textContent="Скопировано ✓";
+        setTimeout(()=>$("#clean-copy-admin-message").textContent="Скопировать сообщение",1500);
+      }catch(_){
+        $("#clean-admin-help-message").focus();
+        $("#clean-admin-help-message").select();
+      }
+    };
+
+    $("#clean-open-admin-chat").onclick=async()=>{
+      const text=buildAdminHelpMessage();
+      try{ await navigator.clipboard.writeText(text); }catch(_){}
+      window.open("https://vk.ru/im?sel=-229391051","_blank","noopener");
+    };
+
     setTimeout(()=>{
-      ($("#clean-recover-identifier").value ? $("#clean-recover-code") : $("#clean-recover-identifier"))?.focus();
+      (recoveryIdentifier.value ? $("#clean-recover-code") : recoveryIdentifier)?.focus();
     },20);
   }
 
