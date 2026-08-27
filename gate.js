@@ -1,5 +1,5 @@
 // ============================================================
-// CLEAN v23.2 · DreamTeam Access + Navigator-style Admin
+// CLEAN v23.3 · exact Navigator-style VK ID / email Auth
 // No supabase-js.
 // Direct REST Auth = same route as the successful GUI tester.
 // App scripts are loaded ONLY after the gate has decided DEMO/FULL.
@@ -22,7 +22,32 @@
   }[ch]));
 
   function base(){ return String(cfg.SUPABASE_URL || "").replace(/\/+$/,""); }
+
   function key(){ return cfg.SUPABASE_PUBLISHABLE_KEY || ""; }
+
+  const VK_EMAIL_DOMAIN="example.com";
+
+  function normalizeVkId(value){
+    const raw=String(value??"").trim();
+    const n=Number(raw);
+    return /^\d{1,15}$/.test(raw)&&Number.isSafeInteger(n)&&n>0?raw:"";
+  }
+
+  function vkEmail(vkId){
+    return `navigator-vk-${vkId}@${VK_EMAIL_DOMAIN}`;
+  }
+
+  function resolveIdentifier(value){
+    const raw=String(value??"").trim();
+    const vkId=normalizeVkId(raw);
+    if(vkId)return {kind:"vk",identifier:vkId,email:vkEmail(vkId)};
+    const email=raw.toLowerCase();
+    if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      return {kind:"email",identifier:email,email};
+    }
+    return null;
+  }
+
 
   function ensureConfig(){
     if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(base())) {
@@ -85,6 +110,19 @@
         "Content-Type":"application/json",
         "apikey":key(),
         "Authorization":"Bearer "+accessToken
+      },
+      body:JSON.stringify({action,...extra}),
+      cache:"no-store"
+    });
+  }
+
+  async function gatePublic(action,extra={}){
+    ensureConfig();
+    return await request(base()+"/functions/v1/lesson-constructor-gate-v23",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":key()
       },
       body:JSON.stringify({action,...extra}),
       cache:"no-store"
@@ -189,12 +227,13 @@
             <button class="clean-btn" id="clean-demo">Попробовать DEMO</button>
             <button class="clean-btn gold" id="clean-login-open">Войти</button>
           </div>
-          <div class="clean-small">FULL / ADMIN проверяются через тот же Supabase-проект Navigator.</div>
+          <div class="clean-small">Полный доступ — по приглашению администратора или для участников VK Donut.</div>
         </div>
       </section>`;
     $("#clean-demo").onclick=()=>openApp("DEMO",null);
     $("#clean-login-open").onclick=()=>showLogin();
   }
+
 
   function showLogin(message=""){
     document.body.classList.add("gate-pending");
@@ -208,12 +247,13 @@
           </div>
           <span class="clean-kicker">DREAMTEAM ACCESS</span>
           <h1>Вход для учителя</h1>
-          <p>Единый e-mail + пароль Supabase. VK Donut определяет право FULL, но не используется как способ входа.</p>
+          <p>Один вход для всех: участники VK Donut вводят числовой VK ID, приглашённые пользователи — email. Временный пароль, который вы можете сменить при первом входе, выдаётся администратором при создании доступа.</p>
           <div class="clean-login">
-            <label>E-mail<input id="clean-email" type="email" autocomplete="username"></label>
+            <label>Email или VK ID<input id="clean-identifier" type="text" autocomplete="username" placeholder="teacher@example.com или 123456789"></label>
             <label>Пароль<input id="clean-password" type="password" autocomplete="current-password"></label>
             <div id="clean-error" class="clean-error" ${message?"":"hidden"}>${esc(message)}</div>
             <button class="clean-btn gold" id="clean-login">Войти</button>
+            <button class="clean-forgot" id="clean-forgot" type="button">Забыли пароль?</button>
             <button class="clean-btn" id="clean-back">← Назад</button>
           </div>
           <div class="clean-debug" id="clean-step">Ожидание входа</div>
@@ -221,23 +261,29 @@
       </section>`;
     $("#clean-login").onclick=doLogin;
     $("#clean-password").onkeydown=e=>{if(e.key==="Enter")doLogin()};
+    $("#clean-forgot").onclick=()=>showRecovery($("#clean-identifier").value);
     $("#clean-back").onclick=()=>showStart();
-    setTimeout(()=>$("#clean-email")?.focus(),20);
+    setTimeout(()=>$("#clean-identifier")?.focus(),20);
   }
 
   async function doLogin(){
-    const email=$("#clean-email").value.trim().toLowerCase();
+    const login=resolveIdentifier($("#clean-identifier").value);
     const password=$("#clean-password").value;
     const error=$("#clean-error");
     const step=$("#clean-step");
     const button=$("#clean-login");
 
     error.hidden=true;
+    if(!login){
+      error.textContent="Введите email или числовой VK ID.";
+      error.hidden=false;
+      return;
+    }
     button.disabled=true;
 
     try{
-      step.textContent="1/3 · Supabase Auth…";
-      const payload=await passwordLogin(email,password);
+      step.textContent="1/3 · Проверка логина и пароля…";
+      const payload=await passwordLogin(login.email,password);
       const session=saveSession(payload);
 
       step.textContent="2/3 · CLEAN Gate: проверка права…";
@@ -271,6 +317,7 @@
   }
 
 
+
   function showFirstPassword(session,status){
     document.body.classList.add("gate-pending");
     appShell.hidden=true;
@@ -281,14 +328,14 @@
             <img src="assets/brand-logo.png" alt="">
             <div><b>Копилочка Английского</b><span>Первый вход · CLEAN v23</span></div>
           </div>
-          <span class="clean-kicker">ВРЕМЕННЫЙ ПАРОЛЬ ПРИНЯТ</span>
+          <span class="clean-kicker">ПЕРВЫЙ ВХОД</span>
           <h1>Создайте свой пароль</h1>
-          <p>Придумайте постоянный пароль — не менее 10 символов.</p>
+          <p>Временный пароль сработал. Теперь придумайте постоянный — такой, который удобно помнить именно вам.</p>
           <div class="clean-login">
-            <label>Новый пароль<input id="clean-new-password" type="password" autocomplete="new-password"></label>
+            <label>Новый пароль<input id="clean-new-password" type="password" autocomplete="new-password" placeholder="Не менее 10 символов"></label>
             <label>Повторите пароль<input id="clean-new-password-2" type="password" autocomplete="new-password"></label>
             <div id="clean-new-password-error" class="clean-error" hidden></div>
-            <button class="clean-btn gold" id="clean-save-password">Сохранить и открыть FULL</button>
+            <button class="clean-btn gold" id="clean-save-password">Сохранить пароль</button>
           </div>
         </div>
       </section>`;
@@ -314,9 +361,11 @@
       button.disabled=true;
       try{
         await updateOwnPassword(session.access_token,a);
-        await gateApi(session.access_token,"first_password_complete");
-        await gateApi(session.access_token,"start");
-        await openApp(status.is_admin?"ADMIN":"FULL",status);
+        const result=await gateApi(session.access_token,"first_password_complete");
+        showRecoveryCode(result.recovery_code,async()=>{
+          await gateApi(session.access_token,"start");
+          await openApp(status.is_admin?"ADMIN":"FULL",status);
+        });
       }catch(e){
         error.textContent=e.message||"Не удалось сохранить пароль.";
         error.hidden=false;
@@ -324,6 +373,131 @@
         button.disabled=false;
       }
     };
+  }
+
+  function showRecoveryCode(code,onContinue){
+    document.body.classList.add("gate-pending");
+    appShell.hidden=true;
+    gateRoot.innerHTML=`
+      <section class="clean-gate">
+        <div class="clean-gate-card recovery-code-card">
+          <div class="clean-gate-brand">
+            <img src="assets/brand-logo.png" alt="">
+            <div><b>Копилочка Английского</b><span>Защищённый вход · CLEAN v23</span></div>
+          </div>
+          <span class="clean-kicker">ВАЖНО · СОХРАНИТЕ</span>
+          <h1>Код восстановления</h1>
+          <p>Он понадобится только если вы забудете пароль. Конструктор хранит не сам код, а его защищённый отпечаток.</p>
+          <div class="clean-recovery-code" id="clean-recovery-code">${esc(code||"")}</div>
+          <button class="clean-btn" id="clean-copy-recovery">Скопировать код</button>
+          <button class="clean-btn gold" id="clean-confirm-recovery">Я сохранил(а) · продолжить</button>
+        </div>
+      </section>`;
+
+    $("#clean-copy-recovery").onclick=async()=>{
+      try{
+        await navigator.clipboard.writeText(code||"");
+        $("#clean-copy-recovery").textContent="Скопировано ✓";
+      }catch(_){}
+    };
+    $("#clean-confirm-recovery").onclick=()=>onContinue?.();
+  }
+
+  function showRecovery(prefill=""){
+    document.body.classList.add("gate-pending");
+    appShell.hidden=true;
+    gateRoot.innerHTML=`
+      <section class="clean-gate">
+        <div class="clean-gate-card">
+          <div class="clean-gate-brand">
+            <img src="assets/brand-logo.png" alt="">
+            <div><b>Копилочка Английского</b><span>Восстановление доступа · CLEAN v23</span></div>
+          </div>
+          <span class="clean-kicker">ВОССТАНОВЛЕНИЕ ДОСТУПА</span>
+          <h1>Забыли пароль?</h1>
+          <p>Введите email или VK ID, сохранённый код восстановления и сразу придумайте новый пароль.</p>
+          <div class="clean-login">
+            <label>Email или VK ID<input id="clean-recover-identifier" type="text" autocomplete="username" value="${esc(prefill)}" placeholder="teacher@example.com или 123456789"></label>
+            <label>Код восстановления<input id="clean-recover-code" type="text" autocomplete="off" placeholder="DTE-XXXX-XXXX-XXXX-XXXX"></label>
+            <label>Новый пароль<input id="clean-recover-password" type="password" autocomplete="new-password" placeholder="Не менее 10 символов"></label>
+            <label>Повторите пароль<input id="clean-recover-password-2" type="password" autocomplete="new-password"></label>
+            <div id="clean-recover-error" class="clean-error" hidden></div>
+            <button class="clean-btn gold" id="clean-recover-submit">Сменить пароль и войти</button>
+            <button class="clean-btn" id="clean-recover-back">← Назад ко входу</button>
+            <a class="clean-admin-contact" href="https://vk.ru/im?sel=-229391051" target="_blank" rel="noopener">✉ Нет кода восстановления? Напишите администратору</a>
+          </div>
+        </div>
+      </section>`;
+
+    $("#clean-recover-back").onclick=()=>showLogin();
+    $("#clean-recover-submit").onclick=doRecovery;
+    setTimeout(()=>{
+      ($("#clean-recover-identifier").value ? $("#clean-recover-code") : $("#clean-recover-identifier"))?.focus();
+    },20);
+  }
+
+  async function doRecovery(){
+    const identifier=$("#clean-recover-identifier").value.trim();
+    const code=$("#clean-recover-code").value.trim();
+    const a=$("#clean-recover-password").value;
+    const b=$("#clean-recover-password-2").value;
+    const error=$("#clean-recover-error");
+    const button=$("#clean-recover-submit");
+    error.hidden=true;
+
+    if(!resolveIdentifier(identifier)){
+      error.textContent="Введите email или числовой VK ID.";
+      error.hidden=false;
+      return;
+    }
+    if(!code){
+      error.textContent="Введите код восстановления.";
+      error.hidden=false;
+      return;
+    }
+    if(a.length<10){
+      error.textContent="Пароль должен содержать не менее 10 символов.";
+      error.hidden=false;
+      return;
+    }
+    if(a!==b){
+      error.textContent="Пароли не совпадают.";
+      error.hidden=false;
+      return;
+    }
+
+    button.disabled=true;
+    try{
+      const result=await gatePublic("recover_password",{
+        identifier,
+        recovery_code:code,
+        new_password:a
+      });
+
+      const login=resolveIdentifier(result.login_identifier||identifier);
+      const payload=await passwordLogin(login.email,a);
+      const session=saveSession(payload);
+      const status=await gateApi(session.access_token,"status");
+      currentStatus=status;
+
+      showRecoveryCode(result.recovery_code,async()=>{
+        await gateApi(session.access_token,"start");
+        await openApp(status.is_admin?"ADMIN":"FULL",status);
+      });
+    }catch(e){
+      const code=String(e?.body?.code||e?.message||"");
+      if(code==="invalid_recovery") error.textContent="Email / VK ID или код восстановления не совпадают.";
+      else if(code==="recovery_not_issued") error.textContent="Для этого доступа код восстановления ещё не выдавался. Напишите администратору.";
+      else if(code==="recovery_locked"){
+        const seconds=Number(e?.body?.retry_after_seconds||900);
+        error.textContent=`Слишком много попыток. Повторите примерно через ${Math.max(1,Math.ceil(seconds/60))} мин.`;
+      }
+      else if(code==="access_ended") error.textContent="Активного доступа к Конструктору сейчас нет.";
+      else error.textContent=e.message||"Не удалось восстановить доступ.";
+      error.hidden=false;
+    }finally{
+      button.disabled=false;
+    }
   }
 
   async function loadScript(src){
@@ -434,7 +608,8 @@
         <section class="nav-admin-create-form" id="admin-create-form" hidden>
           <div class="nav-admin-form-grid">
             <label>Имя<input id="admin-new-name" type="text" placeholder="Необязательно"></label>
-            <label>E-mail<input id="admin-new-email" type="email" placeholder="teacher@example.com"></label>
+            <label id="admin-new-email-wrap">E-mail<input id="admin-new-email" type="email" placeholder="teacher@example.com"></label>
+            <label id="admin-new-vk-wrap" hidden>VK ID<input id="admin-new-vk" type="text" inputmode="numeric" placeholder="123456789"></label>
             <label>Срок
               <select id="admin-new-expiry">
                 <option value="">Бессрочно</option>
@@ -443,7 +618,6 @@
                 <option value="365">1 год</option>
               </select>
             </label>
-            <label id="admin-new-note-wrap" hidden>VK ID / заметка<input id="admin-new-note" type="text" placeholder="Например, VK ID или имя дона"></label>
           </div>
           <div class="clean-error" id="admin-create-error" hidden></div>
           <div class="nav-admin-form-actions">
@@ -493,14 +667,16 @@
     await refreshAdmin();
   }
 
+
   function updateAdminCreateUI(){
     const donut=adminTab==="vk_donut";
-    $("#admin-create-title").textContent=donut?"VK Donut FULL-доступ":"Email-доступ по приглашению";
+    $("#admin-create-title").textContent=donut?"Постоянный VK-вход":"Email-доступ по приглашению";
     $("#admin-create-help").textContent=donut
-      ?"Donut подтверждает право FULL. Вход пользователя остаётся обычным: e-mail + пароль Supabase."
-      :"Создайте пользователю вход по его e-mail. Новый аккаунт получит временный пароль.";
+      ?"Пользователь будет входить по числовому VK ID и паролю. Email ему не нужен."
+      :"Создайте пользователю вход по его email. Новый аккаунт получит временный пароль.";
     $("#admin-create-open").textContent=donut?"+ VK-доступ":"+ Email-доступ";
-    $("#admin-new-note-wrap").hidden=!donut;
+    $("#admin-new-email-wrap").hidden=donut;
+    $("#admin-new-vk-wrap").hidden=!donut;
   }
 
   async function refreshAdmin(){
@@ -546,13 +722,14 @@
       <article class="nav-user-card ${u.is_self?"self":""}">
         <div class="nav-user-title">
           <b>${esc(u.display_name||u.email)}</b>
-          <small>${esc(u.email)}</small>
+          <small>${u.vk_user_id?`VK ID ${esc(u.vk_user_id)}`:esc(u.email)}</small>
           <div class="nav-user-chips">
             <span>${u.access_source==="vk_donut"?"VK DONUT":"EMAIL"}</span>
             <span>FULL</span>
             <span class="${u.status==="active"?"good":u.status==="blocked"?"bad":"warn"}">${esc(statusLabel(u.status))}</span>
             ${u.access_level==="ADMIN"?'<span class="gold">ADMIN</span>':""}
             ${u.must_change_password?'<span class="warn">TEMP PASSWORD</span>':""}
+            ${u.recovery_issued?'<span>RECOVERY ✓</span>':""}
             ${u.online?'<span class="good">ONLINE</span>':""}
           </div>
           ${u.note?`<small class="nav-user-note">${esc(u.note)}</small>`:""}
@@ -584,14 +761,28 @@
     return d.toISOString();
   }
 
+
   async function createAdminAccess(){
     const session=readSession();
     const error=$("#admin-create-error");
     error.hidden=true;
 
+    const donut=adminTab==="vk_donut";
     const email=$("#admin-new-email").value.trim().toLowerCase();
-    if(!email){
-      error.textContent="Введите e-mail.";
+    const vkId=$("#admin-new-vk").value.trim();
+
+    if(donut && !normalizeVkId(vkId)){
+      error.textContent="Введите числовой VK ID.";
+      error.hidden=false;
+      return;
+    }
+    if(!donut && resolveIdentifier(email)?.kind!=="email"){
+      error.textContent="Введите email.";
+      error.hidden=false;
+      return;
+    }
+    if(!donut && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      error.textContent="Введите корректный email.";
       error.hidden=false;
       return;
     }
@@ -600,22 +791,28 @@
     button.disabled=true;
 
     try{
-      const result=await gateApi(session.access_token,"admin_create",{
-        email,
+      const payload={
         display_name:$("#admin-new-name").value.trim(),
-        access_source:adminTab==="vk_donut"?"vk_donut":"invite",
-        expires_at:expiryFromPreset(),
-        note:adminTab==="vk_donut"?$("#admin-new-note").value.trim():""
-      });
+        access_source:donut?"vk_donut":"invite",
+        expires_at:expiryFromPreset()
+      };
+      if(donut)payload.vk_user_id=vkId;
+      else payload.email=email;
+
+      const result=await gateApi(session.access_token,"admin_create",payload);
 
       $("#admin-create-form").hidden=true;
       $("#admin-new-email").value="";
+      $("#admin-new-vk").value="";
       $("#admin-new-name").value="";
-      $("#admin-new-note").value="";
       showAdminMessage(result.message||"");
       await refreshAdmin();
     }catch(e){
-      error.textContent=e.message||"Не удалось создать доступ.";
+      const code=String(e?.body?.code||e?.message||"");
+      error.textContent=
+        code==="invalid_vk_id"?"Проверьте VK ID: нужны только цифры.":
+        code==="invalid_email"?"Проверьте email.":
+        e.message||"Не удалось создать доступ.";
       error.hidden=false;
     }finally{
       button.disabled=false;
@@ -682,7 +879,7 @@
 
       if(button.dataset.reset){
         const u=adminRow(button.dataset.reset);
-        if(!confirm(`Сбросить пароль ${u?.email||"пользователя"}?`))return;
+        if(!confirm(`Сбросить пароль ${u?.vk_user_id?`VK ID ${u.vk_user_id}`:(u?.email||"пользователя")}?`))return;
         const result=await gateApi(session.access_token,"admin_reset_password",{user_id:button.dataset.reset});
         showAdminMessage(result.message||"");
         await refreshAdmin();
