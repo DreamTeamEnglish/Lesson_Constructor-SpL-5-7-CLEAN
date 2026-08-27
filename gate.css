@@ -340,3 +340,123 @@ body.gate-pending #app-shell{visibility:hidden}
   }
 }
 
+/* CLEAN v23.3.5 · recovery fits one desktop screen */
+.clean-gate-card:has(#clean-recover-submit){
+  width:min(700px,92vw);
+  max-width:700px;
+  padding:14px 20px 16px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-gate-brand{
+  margin-bottom:6px !important;
+  gap:10px;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-gate-brand img{
+  width:46px !important;
+  height:46px !important;
+  border-radius:10px;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-gate-brand b{
+  font-size:21px !important;
+  line-height:1.05;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-gate-brand span{
+  display:none !important;
+}
+.clean-gate-card:has(#clean-recover-submit) h1{
+  font-size:36px !important;
+  line-height:1.02;
+  margin:4px 0 6px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) > p{
+  font-size:13px !important;
+  line-height:1.32 !important;
+  margin:0 0 8px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-login{
+  gap:6px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-login label{
+  gap:2px !important;
+  font-size:12px !important;
+  line-height:1.15;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-login input{
+  min-height:38px !important;
+  height:38px !important;
+  padding:7px 10px !important;
+  font-size:13px !important;
+  border-radius:8px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-btn{
+  min-height:40px !important;
+  height:40px !important;
+  padding:7px 10px !important;
+  font-size:13px !important;
+  border-radius:8px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) #clean-recover-back{
+  margin-top:0 !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-admin-help.compact{
+  margin-top:2px !important;
+  padding:7px 9px !important;
+  border-radius:9px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-admin-help.compact b{
+  font-size:12px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-admin-help.compact span{
+  font-size:11px !important;
+  line-height:1.25 !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-admin-help.compact .clean-admin-help-actions{
+  gap:6px !important;
+  margin-top:6px !important;
+}
+.clean-gate-card:has(#clean-recover-submit) .clean-mini-btn{
+  min-height:34px !important;
+  height:34px !important;
+  padding:5px 8px !important;
+  font-size:11px !important;
+  border-radius:7px !important;
+}
+
+/* For shorter laptop viewports */
+@media(max-height:820px){
+  .clean-gate{
+    padding-top:6px !important;
+    padding-bottom:6px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit){
+    padding:10px 18px 12px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit) .clean-gate-brand img{
+    width:40px !important;
+    height:40px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit) .clean-gate-brand b{
+    font-size:19px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit) h1{
+    font-size:32px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit) > p{
+    font-size:12px !important;
+    margin-bottom:6px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit) .clean-login{
+    gap:5px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit) .clean-login input{
+    min-height:35px !important;
+    height:35px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit) .clean-btn{
+    min-height:37px !important;
+    height:37px !important;
+  }
+  .clean-gate-card:has(#clean-recover-submit) .clean-admin-help.compact{
+    padding:6px 8px !important;
+  }
+}
+
