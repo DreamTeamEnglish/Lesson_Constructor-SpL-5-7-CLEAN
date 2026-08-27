@@ -1,5 +1,5 @@
 // ============================================================
-// CLEAN v23.1 · independent DreamTeam Access Gate
+// CLEAN v23.2 · DreamTeam Access + Navigator-style Admin
 // No supabase-js.
 // Direct REST Auth = same route as the successful GUI tester.
 // App scripts are loaded ONLY after the gate has decided DEMO/FULL.
@@ -108,7 +108,42 @@
     catch(_){ return null; }
   }
 
+
   function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+
+  function formatDate(value){
+    if(!value)return "—";
+    try{
+      return new Intl.DateTimeFormat("ru-RU",{dateStyle:"short",timeStyle:"short"}).format(new Date(value));
+    }catch(_){return String(value)}
+  }
+
+  function expiryText(value){
+    return value ? formatDate(value) : "бессрочно";
+  }
+
+  function statusLabel(value){
+    return ({
+      active:"ACTIVE",
+      blocked:"BLOCKED",
+      pending:"PENDING",
+      expired:"EXPIRED"
+    })[value] || String(value||"").toUpperCase();
+  }
+
+  async function updateOwnPassword(accessToken,password){
+    return await request(base()+"/auth/v1/user",{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        "apikey":key(),
+        "Authorization":"Bearer "+accessToken
+      },
+      body:JSON.stringify({password}),
+      cache:"no-store"
+    });
+  }
+
 
   async function usableSession(){
     let s = readSession();
@@ -210,7 +245,8 @@
       currentStatus=status;
 
       if(status.must_change_password){
-        throw new Error("TEMP_PASSWORD_OK"); // step 2 UI will be added after gate proves stable
+        showFirstPassword(session,status);
+        return;
       }
       if(!status.valid_full && status.state!=="demo"){
         clearSession();
@@ -226,16 +262,68 @@
 
       await openApp(status.is_admin?"ADMIN":"FULL",status);
     }catch(e){
-      if(e.message==="TEMP_PASSWORD_OK"){
-        error.textContent="Временный пароль принят. На следующем шаге подключим обязательную смену пароля.";
-      }else{
-        error.textContent=e.message || "Ошибка входа.";
-      }
+      error.textContent=e.message || "Ошибка входа.";
       error.hidden=false;
       step.textContent="Остановлено";
     }finally{
       button.disabled=false;
     }
+  }
+
+
+  function showFirstPassword(session,status){
+    document.body.classList.add("gate-pending");
+    appShell.hidden=true;
+    gateRoot.innerHTML=`
+      <section class="clean-gate">
+        <div class="clean-gate-card">
+          <div class="clean-gate-brand">
+            <img src="assets/brand-logo.png" alt="">
+            <div><b>Копилочка Английского</b><span>Первый вход · CLEAN v23</span></div>
+          </div>
+          <span class="clean-kicker">ВРЕМЕННЫЙ ПАРОЛЬ ПРИНЯТ</span>
+          <h1>Создайте свой пароль</h1>
+          <p>Придумайте постоянный пароль — не менее 10 символов.</p>
+          <div class="clean-login">
+            <label>Новый пароль<input id="clean-new-password" type="password" autocomplete="new-password"></label>
+            <label>Повторите пароль<input id="clean-new-password-2" type="password" autocomplete="new-password"></label>
+            <div id="clean-new-password-error" class="clean-error" hidden></div>
+            <button class="clean-btn gold" id="clean-save-password">Сохранить и открыть FULL</button>
+          </div>
+        </div>
+      </section>`;
+
+    $("#clean-save-password").onclick=async()=>{
+      const a=$("#clean-new-password").value;
+      const b=$("#clean-new-password-2").value;
+      const error=$("#clean-new-password-error");
+      error.hidden=true;
+
+      if(a.length<10){
+        error.textContent="Пароль должен содержать не менее 10 символов.";
+        error.hidden=false;
+        return;
+      }
+      if(a!==b){
+        error.textContent="Пароли не совпадают.";
+        error.hidden=false;
+        return;
+      }
+
+      const button=$("#clean-save-password");
+      button.disabled=true;
+      try{
+        await updateOwnPassword(session.access_token,a);
+        await gateApi(session.access_token,"first_password_complete");
+        await gateApi(session.access_token,"start");
+        await openApp(status.is_admin?"ADMIN":"FULL",status);
+      }catch(e){
+        error.textContent=e.message||"Не удалось сохранить пароль.";
+        error.hidden=false;
+      }finally{
+        button.disabled=false;
+      }
+    };
   }
 
   async function loadScript(src){
@@ -295,9 +383,14 @@
     $("#clean-admin")?.addEventListener("click",openAdmin);
   }
 
+
+  let adminUsers=[];
+  let adminTab="invite";
+
   async function openAdmin(){
     const session=readSession();
     if(!session?.access_token)return;
+
     let overlay=$("#clean-admin-overlay");
     if(!overlay){
       overlay=document.createElement("div");
@@ -305,32 +398,297 @@
       overlay.className="clean-admin-overlay";
       document.body.appendChild(overlay);
     }
+
     overlay.hidden=false;
     overlay.innerHTML=`
-      <section class="clean-admin-card">
-        <div class="clean-admin-head"><h2>Управление доступом</h2><button class="clean-btn" id="clean-admin-close">Закрыть</button></div>
-        <p>Это первый контрольный экран новой админки. Сейчас проверяем чтение списка пользователей.</p>
-        <div class="clean-admin-list" id="clean-admin-list"><div>Загрузка…</div></div>
+      <section class="clean-admin-card navigator-admin">
+        <div class="clean-admin-head nav-admin-head">
+          <div>
+            <span class="nav-admin-kicker">SPOTLIGHT 5–7 ADMIN</span>
+            <h2>Участники и доступ</h2>
+          </div>
+          <div class="nav-admin-top-actions">
+            <a class="nav-admin-link" href="https://dreamteamenglish.github.io/Lesson_Constructor-SpL-5-7-CLEAN/" target="_blank" rel="noopener">Открыть GitHub ↗</a>
+            <button class="nav-admin-link" id="clean-admin-refresh">↻ Обновить</button>
+            <button class="nav-admin-close" id="clean-admin-close">×</button>
+          </div>
+        </div>
+
+        <section class="nav-admin-stats" id="clean-admin-stats">
+          <div>Загрузка статистики…</div>
+        </section>
+
+        <div class="nav-admin-tabs">
+          <button class="active" data-admin-tab="invite">По приглашению <span id="admin-count-invite">0</span></button>
+          <button data-admin-tab="vk_donut">VK Donut <span id="admin-count-donut">0</span></button>
+        </div>
+
+        <section class="nav-admin-create">
+          <div>
+            <b id="admin-create-title">Email-доступ по приглашению</b>
+            <small id="admin-create-help">Создайте пользователю вход по его e-mail. Новый аккаунт получит временный пароль.</small>
+          </div>
+          <button class="nav-admin-primary" id="admin-create-open">+ Email-доступ</button>
+        </section>
+
+        <section class="nav-admin-create-form" id="admin-create-form" hidden>
+          <div class="nav-admin-form-grid">
+            <label>Имя<input id="admin-new-name" type="text" placeholder="Необязательно"></label>
+            <label>E-mail<input id="admin-new-email" type="email" placeholder="teacher@example.com"></label>
+            <label>Срок
+              <select id="admin-new-expiry">
+                <option value="">Бессрочно</option>
+                <option value="30">30 дней</option>
+                <option value="90">90 дней</option>
+                <option value="365">1 год</option>
+              </select>
+            </label>
+            <label id="admin-new-note-wrap" hidden>VK ID / заметка<input id="admin-new-note" type="text" placeholder="Например, VK ID или имя дона"></label>
+          </div>
+          <div class="clean-error" id="admin-create-error" hidden></div>
+          <div class="nav-admin-form-actions">
+            <button class="nav-admin-primary" id="admin-create-submit">Создать доступ</button>
+            <button class="nav-admin-link" id="admin-create-cancel">Отмена</button>
+          </div>
+        </section>
+
+        <div class="nav-admin-summary" id="admin-tab-summary"></div>
+        <div class="nav-admin-list" id="clean-admin-list"><div class="nav-admin-loading">Загрузка…</div></div>
+
+        <div class="nav-admin-popover" id="admin-message-popover" hidden>
+          <div class="nav-admin-message-card">
+            <button class="nav-admin-close small" id="admin-message-close">×</button>
+            <span class="nav-admin-kicker">ДОСТУП ГОТОВ</span>
+            <h3>Сообщение пользователю</h3>
+            <pre id="admin-message-text"></pre>
+            <div class="nav-admin-form-actions">
+              <button class="nav-admin-primary" id="admin-message-copy">Скопировать</button>
+              <button class="nav-admin-link" id="admin-message-download">Скачать .txt</button>
+            </div>
+          </div>
+        </div>
       </section>`;
+
     $("#clean-admin-close").onclick=()=>overlay.hidden=true;
+    $("#clean-admin-refresh").onclick=refreshAdmin;
+    $("#admin-create-open").onclick=()=>$("#admin-create-form").hidden=false;
+    $("#admin-create-cancel").onclick=()=>$("#admin-create-form").hidden=true;
+    $("#admin-create-submit").onclick=createAdminAccess;
+    $("#admin-message-close").onclick=()=>$("#admin-message-popover").hidden=true;
+    $("#admin-message-copy").onclick=copyAdminMessage;
+    $("#admin-message-download").onclick=downloadAdminMessage;
+
+    overlay.querySelectorAll("[data-admin-tab]").forEach(btn=>{
+      btn.onclick=()=>{
+        adminTab=btn.dataset.adminTab;
+        overlay.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x===btn));
+        updateAdminCreateUI();
+        renderAdmin();
+      };
+    });
+
+    $("#clean-admin-list").onclick=handleAdminListClick;
+
+    updateAdminCreateUI();
+    await refreshAdmin();
+  }
+
+  function updateAdminCreateUI(){
+    const donut=adminTab==="vk_donut";
+    $("#admin-create-title").textContent=donut?"VK Donut FULL-доступ":"Email-доступ по приглашению";
+    $("#admin-create-help").textContent=donut
+      ?"Donut подтверждает право FULL. Вход пользователя остаётся обычным: e-mail + пароль Supabase."
+      :"Создайте пользователю вход по его e-mail. Новый аккаунт получит временный пароль.";
+    $("#admin-create-open").textContent=donut?"+ VK-доступ":"+ Email-доступ";
+    $("#admin-new-note-wrap").hidden=!donut;
+  }
+
+  async function refreshAdmin(){
+    const session=readSession();
+    if(!session?.access_token)return;
+    $("#clean-admin-list").innerHTML='<div class="nav-admin-loading">Загрузка пользователей…</div>';
 
     try{
       const result=await gateApi(session.access_token,"admin_list");
-      const users=result.users||[];
-      $("#clean-admin-list").innerHTML=users.length?users.map(u=>`
-        <article class="clean-user">
-          <div>
-            <b>${esc(u.display_name||u.email)}</b>
-            <small>${esc(u.email)}</small>
-            <span class="clean-chip">${esc(u.access_level)}</span>
-            <span class="clean-chip">${esc(u.access_source)}</span>
-            <span class="clean-chip">${esc(u.status)}</span>
-            ${u.online?'<span class="clean-chip">ONLINE</span>':""}
-          </div>
-          <div>${Number(u.login_count||0)} вход.</div>
-        </article>`).join(""):'<div>Пользователей пока нет.</div>';
+      adminUsers=result.users||[];
+      const stats=result.stats||{};
+
+      $("#clean-admin-stats").innerHTML=`
+        <div><b>${Number(stats.total||0)}</b><span>всего</span></div>
+        <div><b>${Number(stats.invited||0)}</b><span>по приглашению</span></div>
+        <div><b>${Number(stats.vk_donut||0)}</b><span>VK Donut</span></div>
+        <div><b>${Number(stats.active||0)}</b><span>активны</span></div>
+        <div><b>${Number(stats.blocked||0)}</b><span>заблокированы</span></div>
+        <div><b>${Number(stats.online||0)}</b><span>онлайн</span></div>`;
+
+      $("#admin-count-invite").textContent=String(Number(stats.invited||0));
+      $("#admin-count-donut").textContent=String(Number(stats.vk_donut||0));
+      renderAdmin();
     }catch(e){
       $("#clean-admin-list").innerHTML=`<div class="clean-error">${esc(e.message)}</div>`;
+    }
+  }
+
+  function usersForTab(){
+    return adminUsers.filter(u=>adminTab==="vk_donut" ? u.access_source==="vk_donut" : u.access_source!=="vk_donut");
+  }
+
+  function renderAdmin(){
+    const rows=usersForTab();
+    const active=rows.filter(u=>u.status==="active").length;
+    const pending=rows.filter(u=>u.status==="pending").length;
+    const blocked=rows.filter(u=>u.status==="blocked").length;
+
+    $("#admin-tab-summary").textContent=
+      `${adminTab==="vk_donut"?"Доны":"Участники"}: ${rows.length} · Active: ${active} · Pending: ${pending} · Blocked: ${blocked}`;
+
+    $("#clean-admin-list").innerHTML=rows.length?rows.map(u=>`
+      <article class="nav-user-card ${u.is_self?"self":""}">
+        <div class="nav-user-title">
+          <b>${esc(u.display_name||u.email)}</b>
+          <small>${esc(u.email)}</small>
+          <div class="nav-user-chips">
+            <span>${u.access_source==="vk_donut"?"VK DONUT":"EMAIL"}</span>
+            <span>FULL</span>
+            <span class="${u.status==="active"?"good":u.status==="blocked"?"bad":"warn"}">${esc(statusLabel(u.status))}</span>
+            ${u.access_level==="ADMIN"?'<span class="gold">ADMIN</span>':""}
+            ${u.must_change_password?'<span class="warn">TEMP PASSWORD</span>':""}
+            ${u.online?'<span class="good">ONLINE</span>':""}
+          </div>
+          ${u.note?`<small class="nav-user-note">${esc(u.note)}</small>`:""}
+        </div>
+        <div class="nav-user-meta">
+          <span>Добавлен: <b>${esc(formatDate(u.created_at))}</b></span>
+          <span>Срок: <b>${esc(expiryText(u.expires_at))}</b></span>
+        </div>
+        <div class="nav-user-meta">
+          <span>Входов: <b>${Number(u.login_count||0)}</b></span>
+          <span>Последний: <b>${esc(formatDate(u.last_login_at))}</b></span>
+        </div>
+        <div class="nav-user-actions">
+          ${u.is_self?'<span class="nav-self">Ваш аккаунт</span>':`
+            <button data-plus30="${esc(u.user_id)}">+30 дней</button>
+            <button data-forever="${esc(u.user_id)}">Бессрочно</button>
+            <button data-reset="${esc(u.user_id)}">Сбросить пароль</button>
+            <button class="${u.status==="blocked"?"good-btn":"danger-btn"}" data-toggle="${esc(u.user_id)}">${u.status==="blocked"?"Разблокировать":"Заблокировать"}</button>
+          `}
+        </div>
+      </article>`).join(""):'<div class="nav-admin-empty">В этой вкладке пользователей пока нет.</div>';
+  }
+
+  function expiryFromPreset(){
+    const raw=$("#admin-new-expiry").value;
+    if(!raw)return null;
+    const d=new Date();
+    d.setDate(d.getDate()+Number(raw));
+    return d.toISOString();
+  }
+
+  async function createAdminAccess(){
+    const session=readSession();
+    const error=$("#admin-create-error");
+    error.hidden=true;
+
+    const email=$("#admin-new-email").value.trim().toLowerCase();
+    if(!email){
+      error.textContent="Введите e-mail.";
+      error.hidden=false;
+      return;
+    }
+
+    const button=$("#admin-create-submit");
+    button.disabled=true;
+
+    try{
+      const result=await gateApi(session.access_token,"admin_create",{
+        email,
+        display_name:$("#admin-new-name").value.trim(),
+        access_source:adminTab==="vk_donut"?"vk_donut":"invite",
+        expires_at:expiryFromPreset(),
+        note:adminTab==="vk_donut"?$("#admin-new-note").value.trim():""
+      });
+
+      $("#admin-create-form").hidden=true;
+      $("#admin-new-email").value="";
+      $("#admin-new-name").value="";
+      $("#admin-new-note").value="";
+      showAdminMessage(result.message||"");
+      await refreshAdmin();
+    }catch(e){
+      error.textContent=e.message||"Не удалось создать доступ.";
+      error.hidden=false;
+    }finally{
+      button.disabled=false;
+    }
+  }
+
+  function showAdminMessage(text){
+    $("#admin-message-text").textContent=text;
+    $("#admin-message-popover").hidden=false;
+  }
+
+  async function copyAdminMessage(){
+    const text=$("#admin-message-text").textContent||"";
+    try{
+      await navigator.clipboard.writeText(text);
+      $("#admin-message-copy").textContent="Скопировано ✓";
+      setTimeout(()=>$("#admin-message-copy").textContent="Скопировать",1500);
+    }catch(_){}
+  }
+
+  function downloadAdminMessage(){
+    const text=$("#admin-message-text").textContent||"";
+    const blob=new Blob([text],{type:"text/plain;charset=utf-8"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="Spotlight_5-7_access.txt";
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  }
+
+  function adminRow(id){
+    return adminUsers.find(u=>u.user_id===id)||null;
+  }
+
+  async function handleAdminListClick(e){
+    const button=e.target.closest("button");
+    if(!button)return;
+    const session=readSession();
+
+    try{
+      if(button.dataset.toggle){
+        const u=adminRow(button.dataset.toggle);
+        const next=u?.status==="blocked"?"active":"blocked";
+        if(!confirm(`${next==="blocked"?"Заблокировать":"Разблокировать"} ${u?.email||"пользователя"}?`))return;
+        await gateApi(session.access_token,"admin_update",{user_id:button.dataset.toggle,status:next});
+        await refreshAdmin();
+        return;
+      }
+
+      if(button.dataset.plus30){
+        const u=adminRow(button.dataset.plus30);
+        const base=u?.expires_at&&new Date(u.expires_at).getTime()>Date.now()?new Date(u.expires_at):new Date();
+        base.setDate(base.getDate()+30);
+        await gateApi(session.access_token,"admin_update",{user_id:button.dataset.plus30,status:"active",expires_at:base.toISOString()});
+        await refreshAdmin();
+        return;
+      }
+
+      if(button.dataset.forever){
+        await gateApi(session.access_token,"admin_update",{user_id:button.dataset.forever,status:"active",expires_at:null});
+        await refreshAdmin();
+        return;
+      }
+
+      if(button.dataset.reset){
+        const u=adminRow(button.dataset.reset);
+        if(!confirm(`Сбросить пароль ${u?.email||"пользователя"}?`))return;
+        const result=await gateApi(session.access_token,"admin_reset_password",{user_id:button.dataset.reset});
+        showAdminMessage(result.message||"");
+        await refreshAdmin();
+      }
+    }catch(err){
+      alert(err.message||"Ошибка управления доступом.");
     }
   }
 
@@ -347,8 +705,7 @@
       currentStatus=status;
 
       if(status.must_change_password){
-        clearSession();
-        showLogin("Временный пароль обнаружен. Первый пароль подключим после проверки чистого входа.");
+        showFirstPassword(session,status);
         return;
       }
 
