@@ -1,5 +1,4 @@
-window.KA_AI_CONFIG={
-  API_BASE:"https://d5d84if6536uig1lhq1t.7qsg961h.apigw.yandexcloud.net",
-  GENERATE_PATH:"/generate",
-  PROJECT_CODE:"SPOTLIGHT6-AI-V16"
-};
+// PRIVATE_CONTENT_REMOVED
+// GOLDEN ARCH production: FULL content is delivered only after Supabase access check
+// from private Yandex Object Storage via short-lived signed URLs.
+window.__KA_PRIVATE_CONTENT_REMOVED__ = true;

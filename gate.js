@@ -10,6 +10,7 @@
 
   const cfg = window.KA_ACCESS_CONFIG || {};
   const SESSION_KEY = "dreamteam:spotlight57:v23:session";
+  const DEFAULT_CONTENT_GATEWAY_URL = "https://functions.yandexcloud.net/d4ek9dq1466mj3g7er5r";
   const gateRoot = document.getElementById("gate-root");
   const appShell = document.getElementById("app-shell");
   let promoLoaded = false;
@@ -149,6 +150,7 @@
 
   function clearSession(){ localStorage.removeItem(SESSION_KEY); }
 
+
   function formatDate(value){
     if(!value)return "—";
     try{
@@ -209,6 +211,7 @@
     }
   }
 
+
   function showStart(message=""){
     document.body.classList.add("gate-pending");
     appShell.hidden = true;
@@ -217,11 +220,11 @@
         <div class="clean-gate-card">
           <div class="clean-gate-brand">
             <img src="assets/brand-logo.png" alt="">
-            <div><b>Копилочка Английского</b><span>Методический конструктор · CLEAN v23</span></div>
+            <div><b>Копилочка Английского</b><span>Методический конструктор · Spotlight 5–7</span></div>
           </div>
           <span class="clean-kicker">SPOTLIGHT 5–7 · ЧИСТАЯ СБОРКА</span>
           <h1>Конструктор уроков</h1>
-          <p>Сначала проверяем только новый независимый замок. Внутри сейчас работает золотая база Spotlight 6 без сегодняшних фронтенд-заплаток.</p>
+          <p>В DEMO доступны 9 полноценных уроков: по 3 для 5, 6 и 7 класса. Полный каталог открывается только после входа.</p>
           ${message?`<div class="clean-error">${esc(message)}</div>`:""}
           <div class="clean-gate-actions">
             <button class="clean-btn" id="clean-demo">Попробовать DEMO</button>
@@ -243,7 +246,7 @@
         <div class="clean-gate-card">
           <div class="clean-gate-brand">
             <img src="assets/brand-logo.png" alt="">
-            <div><b>Копилочка Английского</b><span>Защищённый вход · CLEAN v23</span></div>
+            <div><b>Копилочка Английского</b><span>Защищённый вход · Spotlight 5–7</span></div>
           </div>
           <span class="clean-kicker">DREAMTEAM ACCESS</span>
           <h1>Вход для учителя</h1>
@@ -383,7 +386,7 @@
         <div class="clean-gate-card recovery-code-card">
           <div class="clean-gate-brand">
             <img src="assets/brand-logo.png" alt="">
-            <div><b>Копилочка Английского</b><span>Защищённый вход · CLEAN v23</span></div>
+            <div><b>Копилочка Английского</b><span>Защищённый вход · Spotlight 5–7</span></div>
           </div>
           <span class="clean-kicker">ВАЖНО · СОХРАНИТЕ</span>
           <h1>Код восстановления</h1>
@@ -551,22 +554,46 @@
 
   async function loadPromo(){
     if(promoLoaded) return;
-    const scripts=[
-      "data.js","lesson1a.js","content-engine.js","ai/activity_catalog.js",
-      "ai-config.js","app.js","enhance-all.js","ai-client.js"
+    const demoScripts=[
+      "demo-data.js","course-router.js","lesson1a.js","content-engine.js","demo-activity-catalog.js",
+      "app.js","enhance-all.js","demo-method.js","demo-ai.js","demo-feedback.js"
     ];
-    for(const src of scripts) await loadScript(src);
+    const fullScripts=[
+      "full-content-loader.js","course-router.js","lesson1a.js","content-engine.js",
+      "app.js","enhance-all.js","activity-library.js"
+    ];
+    window.KA_ACCESS_MODE=currentMode;
+
+    if(currentMode==="DEMO"){
+      for(const src of demoScripts) await loadScript(src);
+      promoLoaded=true;
+      return;
+    }
+
+    // GOLDEN ARCH: Supabase checks the passport, Yandex delivers the FULL warehouse.
+    // No lesson JSON, activity bank or private GOLD source-lock layer is shipped by GitHub/Yandex screens.
+    await loadScript(fullScripts[0]);
+    const session=readSession();
+    if(!window.KA_FULL_CONTENT_LOADER?.load) throw new Error("FULL loader не инициализирован.");
+    await window.KA_FULL_CONTENT_LOADER.load({
+      gatewayUrl:cfg.YANDEX_CONTENT_GATEWAY_URL||DEFAULT_CONTENT_GATEWAY_URL,
+      accessToken:session?.access_token||""
+    });
+    for(const src of fullScripts.slice(1)) await loadScript(src);
+    window.KA_FULL_CONTENT_LOADER.installPrivateScripts();
     promoLoaded=true;
   }
 
   async function openApp(mode,status){
-    gateRoot.innerHTML="";
-    appShell.hidden=false;
-    document.body.classList.remove("gate-pending");
     currentMode=mode;
     currentStatus=status;
 
+    // Keep the gate visible until DEMO/FULL runtime is fully ready.
+    // If Yandex FULL delivery fails, the teacher sees the login error instead of an empty shell.
     await loadPromo();
+    gateRoot.innerHTML="";
+    appShell.hidden=false;
+    document.body.classList.remove("gate-pending");
     paintBar();
   }
 
@@ -575,9 +602,10 @@
     if(!bar)return;
     if(currentMode==="DEMO"){
       bar.innerHTML=`
-        <div class="clean-bar-left"><strong>DEMO · золотая база Spotlight 6</strong><span>Сейчас проверяем оболочку и новый замок</span></div>
+        <div class="clean-bar-left"><strong>DEMO · 9 УРОКОВ · SPOTLIGHT 5–7</strong><span>Открыто по 3 урока для 5, 6 и 7 класса · FULL-каталог не загружается</span></div>
         <div class="clean-bar-actions"><button id="clean-home">Главная</button></div>`;
       $("#clean-home").onclick=()=>location.reload();
+      window.KA_DEMO_FEEDBACK?.install?.();
       return;
     }
 
@@ -594,10 +622,13 @@
         ? `VK ID ${currentStatus.access.vk_user_id}`
         : identifier;
 
+    const accessTitle=`${currentMode==="ADMIN"?"ADMIN · ":""}FULL ACCESS`;
+    const accessSubtitle=`${esc(visibleLogin)} · CLEAN · Spotlight 5–7`;
+
     bar.innerHTML=`
       <div class="clean-bar-left">
-        <strong>${currentMode==="ADMIN"?"ADMIN · ":""}FULL ACCESS</strong>
-        <span>${esc(visibleLogin)} · CLEAN v23 · Spotlight 6 base</span>
+        <strong>${accessTitle}</strong>
+        <span>${accessSubtitle}</span>
       </div>
       <div class="clean-bar-actions">
         ${currentMode==="ADMIN"?'<button class="admin" id="clean-admin">⚙ Управление доступом</button>':""}

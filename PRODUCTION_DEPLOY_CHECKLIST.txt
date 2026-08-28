@@ -1,0 +1,22 @@
+SPOTLIGHT 5–7 · PRODUCTION DEPLOY CHECKLIST v0.6.8
+
+BEFORE COMMIT
+[ ] Репозиторий: DreamTeamEnglish/Lesson_Constructor-SpL-5-7-CLEAN
+[ ] НЕ удалять существующий access-config.js
+[ ] Загрузить содержимое архива в корень репозитория
+[ ] Убедиться, что index.html находится в корне
+[ ] Разрешить замену совпадающих файлов
+[ ] Проверить, что data.js / v24-method.js / v24-ai.js стали маленькими PRIVATE_CONTENT_REMOVED-заглушками
+
+AFTER COMMIT
+[ ] GitHub Actions / pages build and deployment = green
+[ ] Инкогнито: DEMO без входа
+[ ] DEMO: 5 / 6 / 7 и ровно 3 урока на класс
+[ ] Обычный браузер: существующий ADMIN/FULL открывается
+[ ] FULL: 5 / 6 / 7 доступны
+[ ] Обычный FULL-пользователь входит
+[ ] Выйти -> войти снова
+[ ] Network: FULL lessons идут с storage.yandexcloud.net, не через supabase.co
+
+ROLLBACK
+GitHub хранит предыдущий commit. При необходимости можно вернуть предыдущий commit или загрузить локальный rollback-пакет.
