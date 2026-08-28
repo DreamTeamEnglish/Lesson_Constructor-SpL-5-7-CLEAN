@@ -1,5 +1,5 @@
 // ============================================================
-// CLEAN v24.2.1 · External AI document flow
+// CLEAN v24.2.2 · External AI document flow
 // AI creates content; constructor owns structure + formatting.
 // No embedded paid Yandex generation.
 // ============================================================
@@ -104,6 +104,15 @@ ${sourceFacts.length?'Опорные факты и границы содержа
 КРИТИЧЕСКОЕ ПРАВИЛО №18 — HARD COMPACTNESS:
 Не компенсируй качество количеством текста. Для обычного 45-минутного урока держи карту примерно до 9–10 тыс. знаков, конспект примерно до 15–16 тыс., ДЗ примерно до 10–11 тыс. Если тема сложная, лучше сократить повторы и оставить один сильный пример, чем раздувать комплект до 25–30 страниц.
 
+КРИТИЧЕСКОЕ ПРАВИЛО №19 — SELF-CHECK BEFORE COLLECTION:
+В P5 ученик должен физически иметь свою работу перед собой во время самопроверки. Правильная последовательность: самостоятельная работа → открытие модели/чек-листа → самопроверка → адресная коррекция или отметка сильного места → только ПОСЛЕ этого учитель может собрать работу. Запрещено писать «учитель собирает работы, затем показывает модель для самопроверки».
+
+КРИТИЧЕСКОЕ ПРАВИЛО №20 — DO NOT MIX SOURCE ITEMS:
+Если полный пример относится к конкретному элементу учебника (Invitation A, Card B, Dialogue 1 и т.п.), все имя/адресат/дата/время/место должны принадлежать ОДНОМУ и тому же исходному элементу. Нельзя собирать «правдоподобный» пример из деталей разных карточек страницы.
+
+КРИТИЧЕСКОЕ ПРАВИЛО №21 — KEEP THE SOURCE PERFORMANCE TASK:
+Если проверенная страница содержит Portfolio / Project / role-play по конкретному poster, game board, invitation set или другому видимому материалу, этот источник должен быть узнаваем в основном тренировочном/коммуникативном задании. Новую придуманную ситуацию используй как перенос ПОСЛЕ опорной задачи, а не вместо неё.
+
 УРОК
 Класс: 6
 УМК: Spotlight 6
@@ -141,7 +150,7 @@ P6 Рефлексия и перенос — доказательство can-do 
 4. Реплики и образцы должны быть реально произносимыми шестиклассником и соответствовать конкретной теме, а не быть универсальной заглушкой.
 5. Речевые опоры давай как scaffold: сначала полнее, затем предусматривай снятие части опор.
 6. P4 обязан приводить к законченному наблюдаемому продукту для понятного адресата.
-7. P5: сначала самостоятельное выполнение/доказательство результата, затем самопроверка по чек-листу, затем конкретная коррекция. Не превращай P5 в повторное объяснение грамматики. НЕ заставляй ученика «обязательно найти ошибку»: если ошибок нет, ученик отмечает самое сильное доказательство успешного выполнения.
+7. P5: сначала самостоятельное выполнение/доказательство результата, затем самопроверка по чек-листу, затем конкретная коррекция, и только потом возможен сбор работы учителем. Ученик не может проверять уже собранную работу. Не превращай P5 в повторное объяснение грамматики. НЕ заставляй ученика «обязательно найти ошибку»: если ошибок нет, ученик отмечает самое сильное доказательство успешного выполнения.
 8. P6: ученик приводит доказательство can-do, называет одну трудность/успех и выбирает конкретный следующий шаг. Не повторяй P2.
 9. Дифференциация должна реально менять степень опоры или сложность: банк слов, начала фраз, частично заполненная схема, дополнительное условие, снятие опор и т. п.
 10. Фактические сведения не выдумывай. Опирайся на данные урока и предложенные материалы; если конкретный факт не задан, не подменяй его случайным «правдоподобным» фактом.
@@ -364,6 +373,11 @@ P6 Рефлексия и перенос — доказательство can-do 
 
     const all=`${parts.map}\n${parts.plan}\n${parts.homework}`;
 
+    if(/собирает\s+работ(?:ы|у)[\s\S]{0,180}(?:самопровер|чек[- ]?лист|модел)/i.test(parts.plan) || /сда(?:ют|ёт|ча)[\s\S]{0,180}(?:самопровер|чек[- ]?лист|модел)/i.test(parts.plan)){
+      add('plan','в P5 работа собрана до самопроверки; ученик должен сначала сверить и исправить работу, а учитель собирает её только после этого');
+    }
+
+
     const canDoLines=(all.match(/Can-do\s*:?\s*[^\n]*/gi)||[]);
     if(canDoLines.some(x=>/possessive case|target language|communicative product|metacognitive|present simple|past simple|present continuous|imperative|quantifier/i.test(x))){
       add('all','ученический Can-do содержит грамматический или методический метаязык — сформулируйте его через понятное действие ребёнка');
@@ -396,19 +410,26 @@ P6 Рефлексия и перенос — доказательство can-do 
     const lid=String(lesson?.legacy_id||'').toLowerCase();
     if(lid==='2a'){
       if(!/invitation|приглаш/i.test(all) || !/birthday|дн[ея] рожд/i.test(all))add('all','2a потерял центральную цепочку Happy Times: реальные приглашения → день рождения/даты → собственное приглашение');
+      if(!/calendar|календар/i.test(all))add('all','2a потерял промежуточный birthday calendar страницы 17; сохраните короткий мост interview → calendar → invitation');
       if(/personal calendar|личн(?:ый|ого) календар/i.test(parts.map) && !/invitation|приглаш/i.test(parts.plan))add('all','2a свёл итог к личному календарю и потерял Portfolio invitation card');
+      if(/Invitation\s*A[\s\S]{0,180}(?:Emma|Mill Street|5[.:]45\s*pm)/i.test(all))add('all','2a смешал детали разных приглашений: Invitation A должен оставаться Janet → Tina, Sat 15 Dec, 17:30, 18 Oxbridge Rd., Plymton');
+      if(/4[–-]5\s*предлож/i.test(parts.homework) && /3[–-]4\s*предлож/i.test(parts.homework))add('homework','в одном варианте ДЗ одновременно указаны 4–5 и 3–4 предложения; оставьте один согласованный объём');
     }
     if(lid==='3f' && /дорожн(?:ый|ые) знак|road-sign poster/i.test(all) && !/danger|respect|protection|love|red/i.test(all))add('all','3f сужен до дорожных знаков; верните What does red mean? и четыре значения красного цвета');
     if(lid==='6c'){
       if(!/Snakes and Ladders/i.test(all) || !/Robinson Crusoe/i.test(all))add('all','6c должен сохранять обе опоры страницы 60: инструкцию Snakes and Ladders и Robinson Crusoe game');
       if(/\bpawn\b/i.test(all) && !/\bcounter/i.test(all))add('all','6c подменил coursebook word counters словом pawn; используйте board / dice / counters из реального текста');
       if(!/Present Simple|doesn.t|does not|He (?:sits|plays|cooks|goes|wakes)/i.test(all))add('all','6c потерял грамматическую работу Robinson Crusoe game с формами Present Simple');
+      if(!/play(?:ed|ing)?\s+(?:the\s+)?Robinson Crusoe|игра(?:ют|ли|ть)\s+(?:в\s+)?Robinson Crusoe|play a short round/i.test(all))add('all','6c заполнил Robinson Crusoe как упражнение, но потерял само игровое действие: после проверки форм нужен короткий play step из задания страницы 60');
+      if(/Can-do\s*:?[^\n]{0,160}Present Simple/i.test(all))add('all','6c снова вывел название грамматики в ученический Can-do; замените его понятным действием ребёнка');
     }
     if(lid==='8d' && /British rules|правил.*Великобрит/i.test(all))add('all','8d должен быть Culture Corner: Building Big, а не British rules');
     if(lid==='8e'){
       if(/permission|allowed|forbidden|borrow|\bstay\b|I'm afraid you can't|May I…?/i.test(all))add('all','8e загрязнён лексикой/клише предыдущего урока о правилах и разрешении; используйте только функциональный язык Booking theatre tickets');
       if(!/I'd like to book|Which play would you like to see|How many seats would you like|How would you like to pay|Can I pay by credit card/i.test(all))add('all','8e не сохранил ключевые функции реального диалога страницы 82');
       if(/asks permission for several activities|просит разрешени.*нескольк/i.test(all))add('all','8e содержит остаточный контекст permission lesson, несовместимый с театральным бронированием');
+      if(!/Romeo and Juliet/i.test(all))add('all','8e потерял Portfolio role-play по реальному Romeo and Juliet poster страницы 82; используйте его как первый опорный раунд, затем давайте новую ситуацию');
+      if(!/(?:know[\s/–-]+now|coach[\s/–-]+couch|tone[\s/–-]+town)/i.test(all))add('all','8e заменил реальный pronunciation box страницы 82 произвольной парой; верните know/now, coach/couch, tone/town');
     }
     if(lid==='8f' && /rights|права и обязанности/i.test(all) && !/neighbourhood|район|litter|graffiti/i.test(all))add('all','8f должен быть Is your neighbourhood neat and tidy?');
     if(lid==='9r' && /русск.*кухн/i.test(all) && !/mushroom|гриб/i.test(all))add('all','9r должен опираться на текст Mushrooms, а не на русскую кухню вообще');
@@ -598,7 +619,7 @@ ${lines}
   }
 
   function currentGoldVersion(){
-    return window.KA_METHOD_V24?.version || '24.2.1';
+    return window.KA_METHOD_V24?.version || '24.2.2';
   }
 
   function printableBlock(key,parts){
