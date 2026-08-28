@@ -1,5 +1,5 @@
 // ============================================================
-// CLEAN v24.2.2 · External AI document flow
+// CLEAN v24.2.3 · External AI document flow
 // AI creates content; constructor owns structure + formatting.
 // No embedded paid Yandex generation.
 // ============================================================
@@ -42,6 +42,26 @@ ${sourceFacts.length?'Опорные факты и границы содержа
 Статус внутреннего аудита: ${lesson.coursebook_audit_status||'PASS'}
 `
       :'';
+    const lid=String(lesson?.legacy_id||'').toLowerCase();
+    const specialLocks=lid==='6c'
+      ?`
+НЕСНИМАЕМЫЙ LOCK 6c:
+1) Порядок ядра страницы: Robinson Crusoe verb completion → listen/read Snakes and Ladders instructions → short Robinson Crusoe play in groups of four → own Snakes and Ladders project.
+2) Не повторяй P1/P3 в P4 как Words/Grammar/Rules missions: P4 должен прежде всего создавать и проверять собственную игру.
+3) Нормальная фраза победы: The first player to reach the last/final square wins. Запрещено: The first player to the last square wins.`
+      :lid==='8e'
+        ?`
+НЕСНИМАЕМЫЙ LOCK 8e:
+1) P3 обязательно включает listen + read Hamlet model booking dialogue после классификации ролей.
+2) Используй реальный Portfolio Romeo and Juliet poster как первый основной role-play.
+3) Обязательно сохрани pronunciation box: know/now, coach/couch, tone/town (/əʊ/ vs /aʊ/).
+4) Никогда не проси реальные card number/CVV/PIN; если нужны card details, они только вымышленные и заранее напечатаны на role card.
+5) Парное ДЗ готовится одним учеником как две дополняющие карточки; никакой домашней координации с партнёром.`
+        :lid==='2a'
+          ?`
+НЕСНИМАЕМЫЙ LOCK 2a:
+Invitation A = Janet → Tina; Saturday 15 December, 17:30; 18 Oxbridge Rd., Plymton. Не смешивать с B/C/D. Сохрани birthday interview + mini/class calendar перед собственной invitation card.`
+          :'';
     return `Ты — высококвалифицированный методист по английскому языку, эксперт по ФГОС/ФОП и автор подробных практических материалов для учителя. Создай ТРИ профессиональных документа на РУССКОМ языке. Английский используй только там, где его реально увидит/произнесёт ученик: в инструкциях, репликах, языковых опорах и полных примерах.
 
 КРИТИЧЕСКОЕ ПРАВИЛО №1 — НЕ ПЕРЕПРОЕКТИРОВАТЬ УРОК:
@@ -113,6 +133,18 @@ ${sourceFacts.length?'Опорные факты и границы содержа
 КРИТИЧЕСКОЕ ПРАВИЛО №21 — KEEP THE SOURCE PERFORMANCE TASK:
 Если проверенная страница содержит Portfolio / Project / role-play по конкретному poster, game board, invitation set или другому видимому материалу, этот источник должен быть узнаваем в основном тренировочном/коммуникативном задании. Новую придуманную ситуацию используй как перенос ПОСЛЕ опорной задачи, а не вместо неё.
 
+КРИТИЧЕСКОЕ ПРАВИЛО №22 — SOURCE ORDER IS PART OF FIDELITY:
+Если в канонической цепочке заданий указан порядок, сохраняй не только наличие, но и ПОРЯДОК центральных действий. Нельзя переставлять задания местами так, что меняется методическая логика страницы. Дополнительную разминку можно поставить до цепочки, но сама coursebook chain должна проходить в заданном порядке.
+
+КРИТИЧЕСКОЕ ПРАВИЛО №23 — P4 MUST ADVANCE, NOT REPEAT:
+P4 не должен повторно проверять те же слова, грамматические формы и сортировку правил, которые уже были выполнены в P1/P3, только под названием «миссия». Если форма игровая/квестовая, каждая миссия должна двигать ученика к НОВОМУ конечному продукту. Не трать 14 минут P4 на повтор P1/P3 перед созданием продукта.
+
+КРИТИЧЕСКОЕ ПРАВИЛО №24 — SAFE FICTIONAL PERSONAL DATA:
+В учебных ролевых диалогах нельзя просить ребёнка сообщать реальные банковские/секретные данные: номер карты, CVV/CVC, PIN, пароль, реальные реквизиты. Если источник упоминает card details/expiry date, используй только вымышленные данные, явно заданные на role card, либо останови диалог на выборе способа оплаты и подтверждении. Никогда не пиши ученику «Please tell me your card number» без вымышленной карточки-стимула.
+
+КРИТИЧЕСКОЕ ПРАВИЛО №25 — ASYNC PAIR TASKS ARE PREPARED BY ONE LEARNER:
+Если домашний вариант называется «парный» или information gap, дома ОДИН ученик должен суметь подготовить весь нужный комплект самостоятельно (например, Card A + Card B + key). Запрещено «каждый из партнёров готовит свою роль», «договоритесь о данных», «выберите вместе» или координация по телефону/чату. Разделение ролей происходит только на следующем уроке.
+
 УРОК
 Класс: 6
 УМК: Spotlight 6
@@ -132,6 +164,7 @@ Can-do: ${kit?.canDo||`I can complete the final lesson task.`}
 Критерии успеха:
 ${success}
 ${sourceBlock}
+${specialLocks}
 ЗОЛОТОЙ КАРКАС УРОКА — СОХРАНИТЬ БЕЗ ПОТЕРЬ:
 ${selected}
 
@@ -395,9 +428,16 @@ P6 Рефлексия и перенос — доказательство can-do 
     if(/позвони\s+(?:другу|однокласснику|родственнику)|попроси\s+(?:друга|родственника|партнёра).*дома|запиши.*с\s+(?:другом|родственником)|поиграй\s+с\s+(?:другом|партнёром)|играй\s+с\s+(?:другом|партнёром)|договорит(?:есь|ься)\s+заранее|выберите\s+с\s+партнёром.*дома/i.test(parts.homework)){
       add('homework','домашнее задание требует обязательного участия другого человека дома — перенесите взаимодействие на следующий урок или сделайте его только добровольной опцией');
     }
+    if(/дома\s+кажд(?:ый|ая)\s+из\s+вас\s+готовит|кажд(?:ый|ая)\s+из\s+партн[её]ров\s+готовит|вы\s+договариваетесь|договоритесь\s+(?:о|про)|выберите\s+с\s+партн[её]ром|по\s+телефону\s+или\s+в\s+чате/i.test(parts.homework)){
+      add('homework','парный вариант всё ещё требует домашней координации двух учеников; один ученик должен самостоятельно подготовить обе дополняющие карточки/ключ, а взаимодействие начнётся только на уроке');
+    }
 
     if(/не менее\s*5\s*(?:лексическ|слов)|минимум\s*5\s*(?:слов|лексическ)|use at least five lesson words|не менее\s*80%\s*слов/i.test(all)){
       add('all','обнаружен искусственный количественный языковой критерий; оставьте число только если оно является конструкцией самого продукта');
+    }
+
+    if(/please\s+tell\s+me\s+your\s+card\s+number|what(?:'s|\s+is)\s+your\s+card\s+number|сообщ(?:и|ите).*номер\s+карт|назов(?:и|ите).*номер\s+карт|CVV|CVC|PIN/i.test(all)){
+      add('all','обнаружен запрос реальных банковских/секретных данных в ученическом сценарии; используйте только вымышленные данные на role card или завершайте диалог на выборе способа оплаты');
     }
 
     const section=String(lesson?.section_title||'');
@@ -420,8 +460,13 @@ P6 Рефлексия и перенос — доказательство can-do 
       if(!/Snakes and Ladders/i.test(all) || !/Robinson Crusoe/i.test(all))add('all','6c должен сохранять обе опоры страницы 60: инструкцию Snakes and Ladders и Robinson Crusoe game');
       if(/\bpawn\b/i.test(all) && !/\bcounter/i.test(all))add('all','6c подменил coursebook word counters словом pawn; используйте board / dice / counters из реального текста');
       if(!/Present Simple|doesn.t|does not|He (?:sits|plays|cooks|goes|wakes)/i.test(all))add('all','6c потерял грамматическую работу Robinson Crusoe game с формами Present Simple');
-      if(!/play(?:ed|ing)?\s+(?:the\s+)?Robinson Crusoe|игра(?:ют|ли|ть)\s+(?:в\s+)?Robinson Crusoe|play a short round/i.test(all))add('all','6c заполнил Robinson Crusoe как упражнение, но потерял само игровое действие: после проверки форм нужен короткий play step из задания страницы 60');
+      if(!/play(?:ed|ing)?\s+(?:the\s+)?Robinson Crusoe|игра(?:ют|ли|ть)\s+(?:в\s+)?Robinson Crusoe|play a short round/i.test(all))add('all','6c заполнил Robinson Crusoe как упражнение, но потерял само игровое действие: после чтения правил нужен короткий play step из задания страницы 60');
       if(/Can-do\s*:?[^\n]{0,160}Present Simple/i.test(all))add('all','6c снова вывел название грамматики в ученический Can-do; замените его понятным действием ребёнка');
+      if(/The first player to the (?:last|final) square wins/i.test(all))add('all','6c содержит неграмматичную формулу победы; используйте The first player to reach the last/final square wins');
+      const p3=(parts.plan.match(/(?:\bP3\b|Языковая и речевая подготовка)[\s\S]*?(?=(?:\bP4\b|Центральная коммуникативная задача))/i)||[])[0]||'';
+      const rc=p3.search(/Robinson Crusoe/i), sl=p3.search(/Snakes and Ladders instructions|инструкц[^\n]{0,80}Snakes and Ladders/i);
+      if(rc>=0 && sl>=0 && rc>sl)add('plan','6c нарушил канонический порядок страницы: сначала completion Robinson Crusoe, затем listen/read Snakes and Ladders, затем короткая игра Robinson Crusoe');
+      if(/Mission\s*1[^\n]{0,80}(?:Words|слова)[\s\S]{0,2200}Mission\s*2[^\n]{0,100}Robinson[\s\S]{0,2200}Mission\s*3[^\n]{0,100}(?:rules|правил)/i.test(parts.plan))add('plan','6c тратит P4 на повтор P1/P3 под видом трёх миссий; центральная задача должна сразу продвигать создание/проверку собственной игры и реально помещаться в 14 минут');
     }
     if(lid==='8d' && /British rules|правил.*Великобрит/i.test(all))add('all','8d должен быть Culture Corner: Building Big, а не British rules');
     if(lid==='8e'){
@@ -429,7 +474,10 @@ P6 Рефлексия и перенос — доказательство can-do 
       if(!/I'd like to book|Which play would you like to see|How many seats would you like|How would you like to pay|Can I pay by credit card/i.test(all))add('all','8e не сохранил ключевые функции реального диалога страницы 82');
       if(/asks permission for several activities|просит разрешени.*нескольк/i.test(all))add('all','8e содержит остаточный контекст permission lesson, несовместимый с театральным бронированием');
       if(!/Romeo and Juliet/i.test(all))add('all','8e потерял Portfolio role-play по реальному Romeo and Juliet poster страницы 82; используйте его как первый опорный раунд, затем давайте новую ситуацию');
-      if(!/(?:know[\s/–-]+now|coach[\s/–-]+couch|tone[\s/–-]+town)/i.test(all))add('all','8e заменил реальный pronunciation box страницы 82 произвольной парой; верните know/now, coach/couch, tone/town');
+      if(!/(?:know[\s/–-]+now|coach[\s/–-]+couch|tone[\s/–-]+town)/i.test(all))add('all','8e потерял/заменил реальный pronunciation box страницы 82; верните know/now, coach/couch, tone/town');
+      const p3=(parts.plan.match(/(?:\bP3\b|Языковая и речевая подготовка)[\s\S]*?(?=(?:\bP4\b|Центральная коммуникативная задача))/i)||[])[0]||'';
+      if(!/Hamlet/i.test(p3) || !/(?:listen|прослуш|аудио)/i.test(p3) || !/(?:read|чита)/i.test(p3))add('plan','8e потерял обязательное listen + read модельного Hamlet booking dialogue; сначала разберите реальную модель страницы 82, затем снимайте опоры');
+      if(/please\s+tell\s+me\s+your\s+card\s+number|what(?:'s|\s+is)\s+your\s+card\s+number/i.test(all))add('all','8e просит у ученика номер банковской карты; замените на безопасное подтверждение оплаты или на явно вымышленные card details с role card');
     }
     if(lid==='8f' && /rights|права и обязанности/i.test(all) && !/neighbourhood|район|litter|graffiti/i.test(all))add('all','8f должен быть Is your neighbourhood neat and tidy?');
     if(lid==='9r' && /русск.*кухн/i.test(all) && !/mushroom|гриб/i.test(all))add('all','9r должен опираться на текст Mushrooms, а не на русскую кухню вообще');
@@ -619,7 +667,7 @@ ${lines}
   }
 
   function currentGoldVersion(){
-    return window.KA_METHOD_V24?.version || '24.2.2';
+    return window.KA_METHOD_V24?.version || '24.2.3';
   }
 
   function printableBlock(key,parts){
