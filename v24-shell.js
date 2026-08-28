@@ -3,7 +3,7 @@
 // UI/navigation layer. Does NOT rewrite LESSONS, Activities or content engine.
 // ============================================================
 (function(){
-  const CLEAN_UI_VERSION='24.1.1';
+  const CLEAN_UI_VERSION='24.1.2';
   'use strict';
 
   const DRAFT_KEY='ka_spotlight6_clean_v24_draft';

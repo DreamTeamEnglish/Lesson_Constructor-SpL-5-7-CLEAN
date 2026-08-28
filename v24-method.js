@@ -1,5 +1,5 @@
 // ============================================================
-// CLEAN v24.1.1 · Methodical normalization layer for GOLD 6
+// CLEAN v24.1.2 · Methodical normalization layer for GOLD 6
 // Keeps the original GOLD data/content-engine intact and corrects
 // systemic language/UX issues for the 69 generated lesson profiles.
 // ============================================================
@@ -164,10 +164,19 @@
 
   function canDo(l){
     const bare=productBare(l),cat=category(l);
-    if(cat==='dialogue')return`I can take part in ${article(bare)} and respond clearly and appropriately.`;
+    if(cat==='dialogue'){
+      if(/phone-order/i.test(bare))return`I can order something by phone and answer simple questions about my order.`;
+      if(/restaurant-booking/i.test(bare))return`I can book a table and answer simple questions about the booking.`;
+      if(/hotel-booking/i.test(bare))return`I can book a room and give the information needed.`;
+      if(/gift-shopping/i.test(bare))return`I can ask about a gift, choose one and complete the purchase.`;
+      if(/asking-the-way|map-based route/i.test(bare))return`I can ask for directions and understand a short route explanation.`;
+      if(/permission/i.test(bare))return`I can ask for permission and respond politely.`;
+      return`I can take part in a short dialogue and exchange the information I need.`;
+    }
     if(cat==='rules'){
       if(/^tourist advice$/i.test(bare))return`I can give clear tourist advice and explain why it is useful.`;
-      return`I can give clear rules or advice in ${article(bare)}.`;
+      if(/road-safety/i.test(bare))return`I can write clear road-safety rules for another person.`;
+      return`I can give clear rules or advice that another person can use.`;
     }
     if(cat==='survey')return`I can ask for information, organise the results and present them clearly.`;
     if(cat==='process'){
@@ -278,31 +287,32 @@
     if(out[0]){
       out[0].title=`Core task · ${bare}`;
       out[0].situation=`Подготовь самостоятельную компактную версию итогового продукта «${l.product}».`;
-      out[0].steps=[`Определи, для кого и зачем ты создаёшь «${l.product}».`,'Используй не менее пяти слов из тематического банка.',`Используй минимум две речевые модели: ${f.slice(0,3).join(' · ')}.`,`Проверь языковой фокус: ${l.grammar_focus}.`];
+      out[0].steps=[`Определи, для кого и зачем ты создаёшь «${l.product}».`,'Выбери из тематического банка только те слова, которые действительно нужны для смысла.',`Используй подходящие речевые модели: ${f.slice(0,3).join(' · ')}.`,`Перечитай результат как адресат и проверь, всё ли понятно.`];
       out[0].bank=bank;out[0].frames=f.join(' · ');
-      out[0].check=['Задача и адресат понятны','Использовано минимум 5 слов темы','Есть минимум 2 речевые модели','Языковой фокус проверен'];
+      out[0].check=['Задача и адресат понятны','Выбранная лексика помогает передать смысл','Речевые модели использованы уместно','Результат понятен без дополнительного объяснения'];
     }
     if(out[1]){
       out[1].title=`New situation · ${bare}`;
       out[1].situation='Перенеси речевую задачу урока в новую ситуацию: измени адресата, место, героя, данные или условие.';
-      out[1].steps=['Измени одно важное условие исходной ситуации.',`Сохрани итоговую задачу: «${l.product}».`,'Используй минимум пять слов и две речевые модели урока.','Добавь одну новую содержательную деталь и проверь язык.'];
+      out[1].steps=['Измени одно важное условие исходной ситуации.',`Сохрани итоговую задачу: «${l.product}».`,'Выбери нужные слова и речевые модели урока по смыслу.','Добавь одну новую содержательную деталь и проверь, понятен ли результат новому адресату.'];
       out[1].bank=bank;out[1].frames=f.join(' · ');
-      out[1].check=['Ситуация действительно новая','Задача урока сохранена','Добавлена новая деталь','Язык проверен'];
+      out[1].check=['Ситуация действительно новая','Задача урока сохранена','Языковые средства подходят новой ситуации','Новая деталь не мешает понятности'];
     }
     if(out[2]){
       out[2].title='Speak, explain and answer';
       out[2].situation=`Подготовь короткое устное представление результата по теме «${l.ktp_topic}» и ответь на уточняющий вопрос.`;
-      out[2].steps=['Составь план из 3–4 смысловых пунктов.','Используй минимум пять слов темы и две речевые модели.','Отрепетируй сообщение 45–60 секунд.','Попроси партнёра задать один уточняющий вопрос и ответь на него.'];
+      out[2].steps=['Составь план из 3–4 смысловых пунктов.','Выбери нужные слова и речевые модели урока.','Отрепетируй сообщение 45–60 секунд без чтения полного текста.','Подготовь один возможный вопрос партнёра и короткий ответ; реальный обмен вопросами состоится на следующем уроке.'];
       out[2].bank=bank;out[2].frames=f.join(' · ');
-      out[2].deliver='План и устное сообщение 45–60 секунд + ответ на один вопрос.';
-      out[2].check=['Есть понятная структура','Использована лексика урока','Есть речевые модели','Ответ на вопрос понятен'];
+      out[2].deliver='План/карточка с ключевыми словами и готовность выступить 45–60 секунд и ответить на один вопрос на следующем уроке.';
+      out[2].check=['Есть понятная структура','Языковые средства помогают передать смысл','Можно говорить по ключевым словам, а не читать','Подготовлен возможный вопрос и понятный ответ'];
     }
     if(out[3]){
       out[3].title='Partner information gap';
-      out[3].situation='Подготовь для партнёра половину задания с недостающей тематической информацией.';
-      out[3].steps=['Создай небольшую таблицу, схему, карту, карточки или список фактов.','Оставь четыре смысловых пропуска.','Подготовь четыре вопроса или подсказки, которые помогут восстановить информацию.','Сделай отдельный ключ и проверь однозначность ответов.'];
+      out[3].situation='Самостоятельно подготовь половину задания с недостающей тематической информацией. На следующем уроке используй материал с партнёром, не показывая ключ.';
+      out[3].steps=['Создай небольшую таблицу, схему, карту, карточки или список фактов.','Оставь четыре смысловых пропуска.','Подготовь четыре вопроса или подсказки, которые помогут восстановить информацию.','Сделай отдельный ключ и принеси всё на следующий урок для парной работы.'];
       out[3].bank=bank;out[3].frames=f.join(' · ');
-      out[3].check=['Есть 4 смысловых пропуска','Вопросы помогают получить информацию','Партнёр должен общаться, а не угадывать','Ключ однозначен'];
+      out[3].deliver='Подготовленный материал, вопросы/подсказки и отдельный ключ; взаимодействие с партнёром проходит на следующем уроке.';
+      out[3].check=['Есть 4 смысловых пропуска','Вопросы помогают получить информацию','Партнёр должен общаться, а не угадывать','Ключ однозначен и не показывается до проверки'];
     }
     if(out[4]){
       out[4].title='Six-card lesson challenge';
@@ -342,11 +352,25 @@
         criterion:"Есть родственная связь, два признака внешности и характеристика; has got / hasn't got и 's употреблены корректно; родственник угадывается; самопроверка завершена и результат подтверждён конкретным доказательством."
       };
     });
+    const homework=(kit.homework||[]).map(h=>({...h,steps:[...(h.steps||[])],check:[...(h.check||[])]}));
+    if(homework[2]){
+      homework[2].situation='Подготовь короткое устное описание родственника по ключевым словам. На следующем уроке партнёр задаст один вопрос, а ты ответишь.';
+      homework[2].steps=['Выбери человека — реального или вымышленного.','Запиши только ключевые слова: relationship, appearance, character.','Отрепетируй описание без чтения полного текста.','Подготовь один возможный вопрос партнёра и короткий ответ; реальный диалог будет на следующем уроке.'];
+      homework[2].deliver='Карточка с ключевыми словами и готовность устно описать человека и ответить на вопрос на следующем уроке.';
+      homework[2].check=['Я могу говорить по ключевым словам','Описание помогает представить человека','Я использую has got / hasn\'t got и семейные связи по смыслу','Я подготовил возможный вопрос и ответ'];
+    }
+    if(homework[3]){
+      homework[3].situation='Самостоятельно подготовь две карточки information gap о членах семьи. На следующем уроке используй их с партнёром, не показывая ответы.';
+      homework[3].steps=['Создай полный профиль персонажа.','Сделай Card A и Card B с разными пропусками.','Подготовь вопросы, которые помогут восстановить пропуски.','На отдельной строке сохрани полный ключ для проверки после разговора.'];
+      homework[3].deliver='Card A, Card B и полный ключ; парная работа выполняется на следующем уроке.';
+      homework[3].check=['На A и B разные пропуски','Вопросы нужны для получения информации','Партнёру не нужно видеть мой ключ','Полный ответ сохранён для проверки после разговора'];
+    }
     return{
       ...kit,
       canDo:manual1ACanDo(),
       success:manual1ASuccess(),
-      activities
+      activities,
+      homework
     };
   }
 
@@ -360,10 +384,10 @@
   }
 
   function installRecommendedDefaults(){
-    if(window.__KA_DEFS_2411)return true;
+    if(window.__KA_DEFS_2412)return true;
     if(typeof window.defs!=='function')return false;
     window.defs=function(l){return recommendedDefaults(l)};
-    window.__KA_DEFS_2411=true;
+    window.__KA_DEFS_2412=true;
     return true;
   }
 
@@ -375,7 +399,7 @@
   }
 
   function install(){
-    if(window.__KA_METHOD_2411)return true;
+    if(window.__KA_METHOD_2412)return true;
     if(!Array.isArray(window.LESSONS)||typeof window.buildLessonKit!=='function')return false;
     augmentFrames();
     (window.LESSONS||[]).forEach(augmentManual1ALexicon);
@@ -388,8 +412,8 @@
       const homework=tuneHomework(l,kit.homework||[]);
       return {...kit,canDo:goal,success:success(l),activities,homework};
     };
-    window.KA_METHOD_V24={version:'24.1.1',productBare,grammarEn,canDo,success,recommendedDefaults};
-    window.__KA_METHOD_2411=true;
+    window.KA_METHOD_V24={version:'24.1.2',productBare,grammarEn,canDo,success,recommendedDefaults};
+    window.__KA_METHOD_2412=true;
     installRecommendedDefaults();
     const defaultsTimer=setInterval(()=>{if(installRecommendedDefaults())clearInterval(defaultsTimer)},25);
     try{ if(typeof reset==='function')setTimeout(()=>reset(),0); }catch(_){}
