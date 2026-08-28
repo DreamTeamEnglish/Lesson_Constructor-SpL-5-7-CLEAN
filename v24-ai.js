@@ -1,5 +1,5 @@
 // ============================================================
-// CLEAN v24.2.0 · External AI document flow
+// CLEAN v24.2.1 · External AI document flow
 // AI creates content; constructor owns structure + formatting.
 // No embedded paid Yandex generation.
 // ============================================================
@@ -37,6 +37,7 @@ ${lesson.coursebook_source}
 Канонический содержательный фокус: ${lesson.coursebook_canonical_focus||lesson.focus||''}
 Канонический языковой/грамматический фокус: ${lesson.coursebook_canonical_grammar||lesson.grammar_focus||''}
 Канонические умения/действия: ${lesson.coursebook_canonical_skills||lesson.skills||''}
+${lesson.coursebook_core_sequence?`Каноническая цепочка заданий страницы: ${lesson.coursebook_core_sequence}`:''}
 ${sourceFacts.length?'Опорные факты и границы содержания:\n'+sourceFacts.map(x=>'• '+x).join('\n'):''}
 Статус внутреннего аудита: ${lesson.coursebook_audit_status||'PASS'}
 `
@@ -90,6 +91,18 @@ ${sourceFacts.length?'Опорные факты и границы содержа
 
 КРИТИЧЕСКОЕ ПРАВИЛО №14 — DETAIL WITHOUT BLOAT:
 Подробный документ должен помогать провести урок, а не превращаться в методическое пособие на десятки страниц. Один расчёт, один полный пример и одно объяснение принципа обычно достаточно; дальше ссылайся на уже показанную логику. Не повторяй одни и те же числа, чек-листы и объяснения в карте, конспекте и ДЗ. Ориентир: карта компактная, конспект подробный, но без энциклопедических повторов; домашнее задание — пять полноценных, но не растянутых вариантов.
+
+КРИТИЧЕСКОЕ ПРАВИЛО №15 — SOURCE-LOCKED LANGUAGE:
+Если ПРОВЕРЕННЫЙ ИСТОЧНИК УМК задаёт конкретные слова, функциональные реплики или цепочку заданий, не подтягивай лексику из соседнего урока/модуля. Старый lexical_bank или functional_frames не имеют права отменять канонический якорь. Для English in Use особенно строго проверяй, что реплики взяты из функции текущей страницы, а не из предыдущей темы.
+
+КРИТИЧЕСКОЕ ПРАВИЛО №16 — PRESERVE THE COURSEBOOK TASK CHAIN:
+Не нужно копировать каждое упражнение учебника, но нельзя выбрасывать его центральную обучающую цепочку. Если канонический якорь говорит «invitations → birthday interview → invitation», «Snakes and Ladders → Robinson Crusoe game → own game» или «role phrases → model booking dialogue → new booking», эта логика должна быть узнаваема в P1–P5.
+
+КРИТИЧЕСКОЕ ПРАВИЛО №17 — ASYNC HOMEWORK REALLY MEANS ASYNC:
+В обязательном домашнем задании запрещены даже скрытые требования к домашнему партнёру: «поиграй с другом», «договоритесь заранее», «выберите вместе дома», «позвони однокласснику». Дома ученик полностью готовит свою часть самостоятельно; взаимодействие начинается только на следующем уроке.
+
+КРИТИЧЕСКОЕ ПРАВИЛО №18 — HARD COMPACTNESS:
+Не компенсируй качество количеством текста. Для обычного 45-минутного урока держи карту примерно до 9–10 тыс. знаков, конспект примерно до 15–16 тыс., ДЗ примерно до 10–11 тыс. Если тема сложная, лучше сократить повторы и оставить один сильный пример, чем раздувать комплект до 25–30 страниц.
 
 УРОК
 Класс: 6
@@ -322,11 +335,13 @@ P6 Рефлексия и перенос — доказательство can-do 
     });
 
     if(parts.map.length<1800)add('map','карта выглядит слишком краткой');
+    if(parts.map.length>10500)add('map','карта чрезмерно разрослась; сократите повторения и оставьте архитектуру урока');
     ['личностн','метапредметн','предметн','оборудован','УУД'].forEach(x=>{
       if(!new RegExp(x,'i').test(parts.map))add('map',`не найден обязательный блок: ${x}`);
     });
 
     if(parts.plan.length<3200)add('plan','конспект выглядит слишком кратким');
+    if(parts.plan.length>16500)add('plan','конспект чрезмерно длинный; сохраните пошаговость, но уберите повторы и лишние микрокомментарии');
     [
       ['подготов','подготовка'],
       ['инструкц','точная инструкция'],
@@ -342,6 +357,7 @@ P6 Рефлексия и перенос — доказательство can-do 
       if(!new RegExp(`Вариант\\s*${n}\\b`,'i').test(parts.homework))add('homework',`не найден вариант ${n}`);
     }
     if(parts.homework.length<2600)add('homework','домашнее задание выглядит слишком кратким');
+    if(parts.homework.length>11500)add('homework','домашнее задание чрезмерно длинное; оставьте пять полноценных вариантов без повторяющихся банков и объяснений');
     if(count(parts.homework,/Проверь себя|чек[- ]?лист/gi)<4)add('homework','не хватает чек-листов самопроверки для вариантов');
     if(count(parts.homework,/Полный(?: разв[её]рнутый)? пример|Полный пример|Пример:/gi)<4)add('homework','не хватает полных тематических примеров');
     if(!/Реплика учителя|Как объявить|объявлени[ея] задания/i.test(parts.homework))add('homework','не найдена готовая реплика учителя для объявления ДЗ');
@@ -362,7 +378,7 @@ P6 Рефлексия и перенос — доказательство can-do 
       add('map','технологическая карта слишком подробно дублирует конспект — оставьте в карте архитектуру этапов, а сценарий/примеры/дифференциацию перенесите в подробный конспект');
     }
 
-    if(/позвони\s+(?:другу|однокласснику|родственнику)|попроси\s+(?:друга|родственника|партнёра).*дома|запиши.*с\s+(?:другом|родственником)/i.test(parts.homework)){
+    if(/позвони\s+(?:другу|однокласснику|родственнику)|попроси\s+(?:друга|родственника|партнёра).*дома|запиши.*с\s+(?:другом|родственником)|поиграй\s+с\s+(?:другом|партнёром)|играй\s+с\s+(?:другом|партнёром)|договорит(?:есь|ься)\s+заранее|выберите\s+с\s+партнёром.*дома/i.test(parts.homework)){
       add('homework','домашнее задание требует обязательного участия другого человека дома — перенесите взаимодействие на следующий урок или сделайте его только добровольной опцией');
     }
 
@@ -378,11 +394,22 @@ P6 Рефлексия и перенос — доказательство can-do 
       add('all','для 8r использован культурный шаблон вместо реального текста Moscow Zoo; верните содержание текущего Spotlight on Russia');
     }
     const lid=String(lesson?.legacy_id||'').toLowerCase();
-    if(lid==='2a' && !/Happy Times|приглаш|birthday|date|time/i.test(all))add('all','2a потерял ядро Happy Times: приглашения, даты и время');
+    if(lid==='2a'){
+      if(!/invitation|приглаш/i.test(all) || !/birthday|дн[ея] рожд/i.test(all))add('all','2a потерял центральную цепочку Happy Times: реальные приглашения → день рождения/даты → собственное приглашение');
+      if(/personal calendar|личн(?:ый|ого) календар/i.test(parts.map) && !/invitation|приглаш/i.test(parts.plan))add('all','2a свёл итог к личному календарю и потерял Portfolio invitation card');
+    }
     if(lid==='3f' && /дорожн(?:ый|ые) знак|road-sign poster/i.test(all) && !/danger|respect|protection|love|red/i.test(all))add('all','3f сужен до дорожных знаков; верните What does red mean? и четыре значения красного цвета');
-    if(lid==='6c' && /популярн.*игр|article about a popular game/i.test(all) && !/Snakes and Ladders|board game|dice|pawn/i.test(all))add('all','6c потерял реальное ядро Pastimes: Snakes and Ladders / инструкции к настольной игре');
+    if(lid==='6c'){
+      if(!/Snakes and Ladders/i.test(all) || !/Robinson Crusoe/i.test(all))add('all','6c должен сохранять обе опоры страницы 60: инструкцию Snakes and Ladders и Robinson Crusoe game');
+      if(/\bpawn\b/i.test(all) && !/\bcounter/i.test(all))add('all','6c подменил coursebook word counters словом pawn; используйте board / dice / counters из реального текста');
+      if(!/Present Simple|doesn.t|does not|He (?:sits|plays|cooks|goes|wakes)/i.test(all))add('all','6c потерял грамматическую работу Robinson Crusoe game с формами Present Simple');
+    }
     if(lid==='8d' && /British rules|правил.*Великобрит/i.test(all))add('all','8d должен быть Culture Corner: Building Big, а не British rules');
-    if(lid==='8e' && /permission|разрешен|запрет/i.test(all) && !/theatre|ticket/i.test(all))add('all','8e должен быть Booking theatre tickets');
+    if(lid==='8e'){
+      if(/permission|allowed|forbidden|borrow|\bstay\b|I'm afraid you can't|May I…?/i.test(all))add('all','8e загрязнён лексикой/клише предыдущего урока о правилах и разрешении; используйте только функциональный язык Booking theatre tickets');
+      if(!/I'd like to book|Which play would you like to see|How many seats would you like|How would you like to pay|Can I pay by credit card/i.test(all))add('all','8e не сохранил ключевые функции реального диалога страницы 82');
+      if(/asks permission for several activities|просит разрешени.*нескольк/i.test(all))add('all','8e содержит остаточный контекст permission lesson, несовместимый с театральным бронированием');
+    }
     if(lid==='8f' && /rights|права и обязанности/i.test(all) && !/neighbourhood|район|litter|graffiti/i.test(all))add('all','8f должен быть Is your neighbourhood neat and tidy?');
     if(lid==='9r' && /русск.*кухн/i.test(all) && !/mushroom|гриб/i.test(all))add('all','9r должен опираться на текст Mushrooms, а не на русскую кухню вообще');
     if((/^Culture Corner/i.test(section)||/^Spotlight on Russia/i.test(section)) &&
@@ -571,7 +598,7 @@ ${lines}
   }
 
   function currentGoldVersion(){
-    return window.KA_METHOD_V24?.version || '24.2.0';
+    return window.KA_METHOD_V24?.version || '24.2.1';
   }
 
   function printableBlock(key,parts){
