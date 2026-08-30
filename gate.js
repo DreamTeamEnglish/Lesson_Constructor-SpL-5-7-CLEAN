@@ -1,16 +1,12 @@
 // ============================================================
-// CLEAN v23.3 · exact Navigator-style VK ID / email Auth
-// No supabase-js.
-// Direct REST Auth = same route as the successful GUI tester.
+// CLEAN v23.3 · shared Firebase VK ID / email Auth
 // App scripts are loaded ONLY after the gate has decided DEMO/FULL.
 // ============================================================
 
 (function(){
   "use strict";
 
-  const cfg = window.KA_ACCESS_CONFIG || {};
-  const SESSION_KEY = "dreamteam:spotlight57:v23:session";
-  const DEFAULT_CONTENT_GATEWAY_URL = "https://functions.yandexcloud.net/d4ek9dq1466mj3g7er5r";
+  const cfg = window.SPOTLIGHT57_FIREBASE_CONFIG || {};
   const gateRoot = document.getElementById("gate-root");
   const appShell = document.getElementById("app-shell");
   let promoLoaded = false;
@@ -22,182 +18,54 @@
     "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"
   }[ch]));
 
-  function base(){ return String(cfg.SUPABASE_URL || "").replace(/\/+$/,""); }
-
-  function key(){ return cfg.SUPABASE_PUBLISHABLE_KEY || ""; }
-
-  const VK_EMAIL_DOMAIN="example.com";
-
-  const ADMIN_CHAT_URL = "https://vk.ru/im?sel=-229391051";
-
-  function buildAccessRequestMessage(){
-    return [
-      "Здравствуйте!",
-      "",
-      "Хочу получить FULL-доступ к Конструктору уроков Spotlight 5–7.",
-      "",
-      "Проект: Конструктор уроков Spotlight 5–7",
-      "Email для входа: __________________",
-      "Если доступ по VK Donut — мой VK ID: __________________",
-      "",
-      "Спасибо!"
-    ].join("\n");
-  }
-
-  function fallbackCopy(text){
-    const area=document.createElement("textarea");
-    area.value=text;
-    area.setAttribute("readonly","");
-    area.style.position="fixed";
-    area.style.opacity="0";
-    document.body.appendChild(area);
-    area.select();
-    try{return Boolean(document.execCommand("copy"));}
-    catch(_){return false;}
-    finally{area.remove();}
-  }
-
-  function requestFullAccess(){
-    const text=buildAccessRequestMessage();
-    const button=$("#clean-request-access");
-    let copyPromise;
-    if(navigator.clipboard?.writeText){
-      copyPromise=navigator.clipboard.writeText(text).then(()=>true).catch(()=>fallbackCopy(text));
-    }else{
-      copyPromise=Promise.resolve(fallbackCopy(text));
-    }
-    window.open(ADMIN_CHAT_URL,"_blank","noopener");
-    copyPromise.then(copied=>{
-      if(button){
-        const original="✉ Написать администратору";
-        button.textContent=copied?"Текст скопирован ✓ · VK открыт":"VK открыт · скопируйте шаблон вручную";
-        setTimeout(()=>{if(button)button.textContent=original;},2200);
-      }
-      if(!copied) alert(text);
-    });
-  }
-
   function normalizeVkId(value){
     const raw=String(value??"").trim();
     const n=Number(raw);
     return /^\d{1,15}$/.test(raw)&&Number.isSafeInteger(n)&&n>0?raw:"";
   }
 
-  function vkEmail(vkId){
-    return `navigator-vk-${vkId}@${VK_EMAIL_DOMAIN}`;
-  }
-
   function resolveIdentifier(value){
-    const raw=String(value??"").trim();
-    const vkId=normalizeVkId(raw);
-    if(vkId)return {kind:"vk",identifier:vkId,email:vkEmail(vkId)};
-    const email=raw.toLowerCase();
-    if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-      return {kind:"email",identifier:email,email};
-    }
-    return null;
+    const resolved=window.SPOTLIGHT57_AUTH.resolveIdentifier(value);
+    return resolved ? {kind:resolved.kind,identifier:resolved.label,email:resolved.email} : null;
   }
 
 
   function ensureConfig(){
-    if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(base())) {
-      throw new Error("Не настроен Supabase Project URL.");
-    }
-    if(!key()) throw new Error("Не настроен Supabase Publishable key.");
-  }
-
-  async function request(url, options={}){
-    const response = await fetch(url, options);
-    const raw = await response.text();
-    let body = null;
-    try { body = raw ? JSON.parse(raw) : null; } catch(_){}
-    if(!response.ok){
-      const message =
-        body?.message || body?.msg || body?.error_description ||
-        body?.error || body?.code || raw || `HTTP ${response.status}`;
-      const e = new Error(message);
-      e.status = response.status;
-      e.body = body;
-      throw e;
-    }
-    return body;
+    if(!window.SPOTLIGHT57_AUTH || !window.SPOTLIGHT57_ACCESS) throw new Error("Firebase-модули входа не загружены.");
+    if(!cfg.apiKey) throw new Error("Не настроен Firebase Web API key.");
+    if(!/^https:\/\//i.test(String(cfg.functionUrl||""))) throw new Error("Не настроен адрес функции Spotlight 5–7.");
   }
 
   async function passwordLogin(email,password){
-    ensureConfig();
-    return await request(base()+"/auth/v1/token?grant_type=password",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","apikey":key()},
-      body:JSON.stringify({email,password}),
-      cache:"no-store"
-    });
+    return window.SPOTLIGHT57_AUTH.signIn(email,password);
   }
 
-  async function refreshSession(refreshToken){
-    ensureConfig();
-    return await request(base()+"/auth/v1/token?grant_type=refresh_token",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","apikey":key()},
-      body:JSON.stringify({refresh_token:refreshToken}),
-      cache:"no-store"
-    });
+  async function refreshSession(){
+    return window.SPOTLIGHT57_AUTH.refresh();
   }
 
-  async function authUser(accessToken){
-    ensureConfig();
-    return await request(base()+"/auth/v1/user",{
-      method:"GET",
-      headers:{"apikey":key(),"Authorization":"Bearer "+accessToken},
-      cache:"no-store"
-    });
+  async function authUser(){
+    return window.SPOTLIGHT57_AUTH.currentSession();
   }
 
   async function gateApi(accessToken, action, extra={}){
-    ensureConfig();
-    return await request(base()+"/functions/v1/lesson-constructor-gate-v23",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "apikey":key(),
-        "Authorization":"Bearer "+accessToken
-      },
-      body:JSON.stringify({action,...extra}),
-      cache:"no-store"
-    });
+    return window.SPOTLIGHT57_ACCESS.call(action,extra);
   }
 
   async function gatePublic(action,extra={}){
-    ensureConfig();
-    return await request(base()+"/functions/v1/lesson-constructor-gate-v23",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "apikey":key()
-      },
-      body:JSON.stringify({action,...extra}),
-      cache:"no-store"
-    });
+    throw new Error(action==="recover_password" ? "Для сброса пароля обратитесь к администратору." : "Требуется вход.");
   }
 
   function saveSession(payload){
-    const expiresIn = Number(payload?.expires_in || 3600);
-    const data = {
-      access_token:payload.access_token,
-      refresh_token:payload.refresh_token,
-      expires_at:Math.floor(Date.now()/1000)+expiresIn,
-      user:payload.user || null
-    };
-    localStorage.setItem(SESSION_KEY,JSON.stringify(data));
-    return data;
+    return payload;
   }
 
   function readSession(){
-    try { return JSON.parse(localStorage.getItem(SESSION_KEY)||"null"); }
-    catch(_){ return null; }
+    return window.SPOTLIGHT57_AUTH.peekSession();
   }
 
 
-  function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+  function clearSession(){ window.SPOTLIGHT57_AUTH.signOut(); }
 
 
   function formatDate(value){
@@ -221,39 +89,13 @@
   }
 
   async function updateOwnPassword(accessToken,password){
-    return await request(base()+"/auth/v1/user",{
-      method:"PUT",
-      headers:{
-        "Content-Type":"application/json",
-        "apikey":key(),
-        "Authorization":"Bearer "+accessToken
-      },
-      body:JSON.stringify({password}),
-      cache:"no-store"
-    });
+    return window.SPOTLIGHT57_AUTH.changePassword(password);
   }
 
 
   async function usableSession(){
-    let s = readSession();
-    if(!s?.access_token || !s?.refresh_token) return null;
-
-    const now = Math.floor(Date.now()/1000);
-    if(Number(s.expires_at||0) <= now+30){
-      try {
-        const refreshed = await refreshSession(s.refresh_token);
-        s = saveSession(refreshed);
-      } catch(_){
-        clearSession();
-        return null;
-      }
-    }
-
     try{
-      const user = await authUser(s.access_token);
-      s.user = user;
-      localStorage.setItem(SESSION_KEY,JSON.stringify(s));
-      return s;
+      return await window.SPOTLIGHT57_AUTH.currentSession();
     }catch(_){
       clearSession();
       return null;
@@ -280,15 +122,9 @@
             <button class="clean-btn gold" id="clean-login-open">Войти</button>
           </div>
           <div class="clean-small">Полный доступ — по приглашению администратора или для участников VK Donut.</div>
-          <section class="clean-admin-help compact">
-            <b>Хотите полный доступ?</b>
-            <span>Готовый текст запроса скопируется автоматически — останется вставить его в сообщение VK и заполнить email / VK ID.</span>
-            <button class="clean-btn gold" id="clean-request-access" type="button" style="margin-top:10px">✉ Написать администратору</button>
-          </section>
         </div>
       </section>`;
     $("#clean-demo").onclick=()=>openApp("DEMO",null);
-    $("#clean-request-access").onclick=requestFullAccess;
     $("#clean-login-open").onclick=()=>showLogin();
   }
 
@@ -345,7 +181,7 @@
       const session=saveSession(payload);
 
       step.textContent="2/3 · CLEAN Gate: проверка права…";
-      const status=await gateApi(session.access_token,"status");
+      const status=await gateApi(session.idToken,"status");
       currentStatus=status;
 
       if(status.must_change_password){
@@ -362,7 +198,7 @@
       }
 
       step.textContent="3/3 · CLEAN Gate: запись входа…";
-      await gateApi(session.access_token,"start");
+      await gateApi(session.idToken,"start");
 
       await openApp(status.is_admin?"ADMIN":"FULL",status);
     }catch(e){
@@ -418,12 +254,11 @@
       const button=$("#clean-save-password");
       button.disabled=true;
       try{
-        await updateOwnPassword(session.access_token,a);
-        const result=await gateApi(session.access_token,"first_password_complete");
-        showRecoveryCode(result.recovery_code,async()=>{
-          await gateApi(session.access_token,"start");
-          await openApp(status.is_admin?"ADMIN":"FULL",status);
-        });
+        const changed=await updateOwnPassword(session.idToken,a);
+        session=saveSession(changed);
+        await gateApi(session.idToken,"first_password_complete");
+        await gateApi(session.idToken,"start");
+        await openApp(status.is_admin?"ADMIN":"FULL",status);
       }catch(e){
         error.textContent=e.message||"Не удалось сохранить пароль.";
         error.hidden=false;
@@ -573,11 +408,11 @@
       const login=resolveIdentifier(result.login_identifier||identifier);
       const payload=await passwordLogin(login.email,a);
       const session=saveSession(payload);
-      const status=await gateApi(session.access_token,"status");
+      const status=await gateApi(session.idToken,"status");
       currentStatus=status;
 
       showRecoveryCode(result.recovery_code,async()=>{
-        await gateApi(session.access_token,"start");
+        await gateApi(session.idToken,"start");
         await openApp(status.is_admin?"ADMIN":"FULL",status);
       });
     }catch(e){
@@ -625,14 +460,14 @@
       return;
     }
 
-    // GOLDEN ARCH: Supabase checks the passport, Yandex delivers the FULL warehouse.
+    // GOLDEN ARCH: Firebase checks identity; Yandex delivers the FULL warehouse.
     // No lesson JSON, activity bank or private GOLD source-lock layer is shipped by GitHub/Yandex screens.
     await loadScript(fullScripts[0]);
     const session=readSession();
     if(!window.KA_FULL_CONTENT_LOADER?.load) throw new Error("FULL loader не инициализирован.");
     await window.KA_FULL_CONTENT_LOADER.load({
-      gatewayUrl:cfg.YANDEX_CONTENT_GATEWAY_URL||DEFAULT_CONTENT_GATEWAY_URL,
-      accessToken:session?.access_token||""
+      gatewayUrl:cfg.functionUrl,
+      accessToken:session?.idToken||""
     });
     for(const src of fullScripts.slice(1)) await loadScript(src);
     window.KA_FULL_CONTENT_LOADER.installPrivateScripts();
@@ -699,7 +534,7 @@
 
   async function openAdmin(){
     const session=readSession();
-    if(!session?.access_token)return;
+    if(!session?.idToken)return;
 
     let overlay=$("#clean-admin-overlay");
     if(!overlay){
@@ -817,11 +652,11 @@
 
   async function refreshAdmin(){
     const session=readSession();
-    if(!session?.access_token)return;
+    if(!session?.idToken)return;
     $("#clean-admin-list").innerHTML='<div class="nav-admin-loading">Загрузка пользователей…</div>';
 
     try{
-      const result=await gateApi(session.access_token,"admin_list");
+      const result=await gateApi(session.idToken,"admin_list");
       adminUsers=result.users||[];
       const stats=result.stats||{};
 
@@ -935,7 +770,7 @@
       if(donut)payload.vk_user_id=vkId;
       else payload.email=email;
 
-      const result=await gateApi(session.access_token,"admin_create",payload);
+      const result=await gateApi(session.idToken,"admin_create",payload);
 
       $("#admin-create-form").hidden=true;
       $("#admin-new-email").value="";
@@ -993,7 +828,7 @@
         const u=adminRow(button.dataset.toggle);
         const next=u?.status==="blocked"?"active":"blocked";
         if(!confirm(`${next==="blocked"?"Заблокировать":"Разблокировать"} ${u?.email||"пользователя"}?`))return;
-        await gateApi(session.access_token,"admin_update",{user_id:button.dataset.toggle,status:next});
+        await gateApi(session.idToken,"admin_update",{user_id:button.dataset.toggle,status:next});
         await refreshAdmin();
         return;
       }
@@ -1002,13 +837,13 @@
         const u=adminRow(button.dataset.plus30);
         const base=u?.expires_at&&new Date(u.expires_at).getTime()>Date.now()?new Date(u.expires_at):new Date();
         base.setDate(base.getDate()+30);
-        await gateApi(session.access_token,"admin_update",{user_id:button.dataset.plus30,status:"active",expires_at:base.toISOString()});
+        await gateApi(session.idToken,"admin_update",{user_id:button.dataset.plus30,status:"active",expires_at:base.toISOString()});
         await refreshAdmin();
         return;
       }
 
       if(button.dataset.forever){
-        await gateApi(session.access_token,"admin_update",{user_id:button.dataset.forever,status:"active",expires_at:null});
+        await gateApi(session.idToken,"admin_update",{user_id:button.dataset.forever,status:"active",expires_at:null});
         await refreshAdmin();
         return;
       }
@@ -1016,7 +851,7 @@
       if(button.dataset.reset){
         const u=adminRow(button.dataset.reset);
         if(!confirm(`Сбросить пароль ${u?.vk_user_id?`VK ID ${u.vk_user_id}`:(u?.email||"пользователя")}?`))return;
-        const result=await gateApi(session.access_token,"admin_reset_password",{user_id:button.dataset.reset});
+        const result=await gateApi(session.idToken,"admin_reset_password",{user_id:button.dataset.reset});
         showAdminMessage(result.message||"");
         await refreshAdmin();
       }
@@ -1034,7 +869,7 @@
         return;
       }
 
-      const status=await gateApi(session.access_token,"status");
+      const status=await gateApi(session.idToken,"status");
       currentStatus=status;
 
       if(status.must_change_password){
@@ -1043,7 +878,7 @@
       }
 
       if(status.valid_full){
-        await gateApi(session.access_token,"start");
+        await gateApi(session.idToken,"start");
         await openApp(status.is_admin?"ADMIN":"FULL",status);
         return;
       }

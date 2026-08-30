@@ -1,0 +1,4 @@
+window.SPOTLIGHT57_FIREBASE_CONFIG = Object.freeze({
+  apiKey: "AIzaSyASkYQ2AEDHo0acJx6oKzYFkldgF715Ndw",
+  functionUrl: "PASTE_NEW_SPOTLIGHT57_FIREBASE_ACCESS_FUNCTION_URL"
+});

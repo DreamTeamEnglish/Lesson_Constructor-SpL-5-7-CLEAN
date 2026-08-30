@@ -1,8 +1,8 @@
 // ============================================================
 // GOLDEN ARCH v0.6 · FULL content loader
-// Supabase = customs only. Yandex = private content warehouse.
+// Firebase = identity and access passport. Yandex = private content warehouse.
 // The browser receives short-lived signed Object Storage URLs only
-// after the Yandex gateway has re-checked FULL access at Supabase.
+// after the Yandex gateway has re-checked Spotlight FULL access.
 // ============================================================
 (function(){
   'use strict';
@@ -42,7 +42,7 @@
   async function requestManifest(gatewayUrl,accessToken){
     const url=String(gatewayUrl||'').trim();
     if(!/^https:\/\//i.test(url))throw new Error('Не настроен Yandex FULL Content Gateway URL.');
-    if(!accessToken)throw new Error('Нет действующего Supabase access token для FULL.');
+    if(!accessToken)throw new Error('Нет действующего Firebase ID token для FULL.');
     const response=await fetch(url,{
       method:'POST',
       mode:'cors',
@@ -50,7 +50,7 @@
       credentials:'omit',
       headers:{
         'Content-Type':'application/json',
-        'X-Lesson-Token':accessToken
+        'Authorization':`Bearer ${accessToken}`
       },
       body:JSON.stringify({action:'manifest'})
     });

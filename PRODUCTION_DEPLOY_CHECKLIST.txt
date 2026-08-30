@@ -16,7 +16,7 @@ AFTER COMMIT
 [ ] FULL: 5 / 6 / 7 доступны
 [ ] Обычный FULL-пользователь входит
 [ ] Выйти -> войти снова
-[ ] Network: FULL lessons идут с storage.yandexcloud.net, не через supabase.co
+[ ] Network: FULL lessons идут с storage.yandexcloud.net, а проверка доступа — через новую Firebase-функцию
 
 ROLLBACK
 GitHub хранит предыдущий commit. При необходимости можно вернуть предыдущий commit или загрузить локальный rollback-пакет.
