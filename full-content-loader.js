@@ -50,7 +50,7 @@
       credentials:'omit',
       headers:{
         'Content-Type':'application/json',
-        'Authorization':`Bearer ${accessToken}`
+        'X-Firebase-Token':accessToken
       },
       body:JSON.stringify({action:'manifest'})
     });

@@ -6,7 +6,7 @@
     const session = await global.SPOTLIGHT57_AUTH.currentSession();
     if (!session?.idToken) throw new Error('firebase_session_missing');
     const response = await global.fetch(config.functionUrl, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.idToken}` },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Firebase-Token': session.idToken },
       body: JSON.stringify({ action, ...(payload || {}) })
     });
     const result = await response.json().catch(() => ({}));
